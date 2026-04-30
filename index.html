@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仙途修真 - 古风修仙Web游戏</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700;900&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 背景粒子画布 -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- 音乐控制按钮 -->
+    <div id="musicControl" class="music-toggle">
+        <button id="toggleMusic" onclick="toggleBackgroundMusic()">🎵</button>
+        <button id="toggleSound" onclick="toggleSoundEffects()">🔊</button>
+    </div>
+
+    <!-- 游戏容器 -->
+    <div id="gameContainer">
+
+        <!-- 登录/创建角色页面 -->
+        <div id="loginPage" class="page active">
+            <div class="title-container">
+                <h1 class="main-title">仙途修真</h1>
+                <p class="subtitle">踏上修仙之路，逆天改命</p>
+            </div>
+            <div class="login-panel scroll-panel">
+                <h2>踏入仙途</h2>
+                <div class="input-group">
+                    <label>请赐道号：</label>
+                    <input type="text" id="playerName" placeholder="输入你的道号" maxlength="12">
+                </div>
+                <button class="ancient-btn" onclick="createCharacter()">开始修仙</button>
+                <button class="ancient-btn secondary" onclick="loadGame()">继续前缘</button>
+            </div>
+        </div>
+
+        <!-- 主界面/洞府页面 -->
+        <div id="mainPage" class="page">
+            <!-- 顶部状态栏 -->
+            <div class="status-bar">
+                <div class="player-info">
+                    <div class="info-item">
+                        <span class="label">道号：</span>
+                        <span id="playerNameDisplay"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">境界：</span>
+                        <span id="realmDisplay"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">灵根：</span>
+                        <span id="spiritualRootDisplay"></span>
+                    </div>
+                </div>
+                <div class="resources">
+                    <div class="resource-item">
+                        <span class="icon">💎</span>
+                        <span id="spiritStones">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 角色详细信息 -->
+            <div class="character-detail">
+                <div class="detail-row">
+                    <div class="bar-container">
+                        <div class="bar-label">灵气值</div>
+                        <div class="progress-bar">
+                            <div id="qiBar" class="progress-fill qi"></div>
+                            <span id="qiText" class="bar-text">0/100</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="detail-row">
+                    <div class="stat-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">生命：</span>
+                            <span id="hpDisplay">100</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">灵力：</span>
+                            <span id="mpDisplay">100</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">攻击：</span>
+                            <span id="attackDisplay">10</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">防御：</span>
+                            <span id="defenseDisplay">5</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主要功能按钮组 -->
+            <div class="main-actions">
+                <button class="action-btn cultivate" onclick="showPage('cultivatePage')">
+                    <span class="btn-icon">🧘</span>
+                    <span class="btn-text">打坐修炼</span>
+                </button>
+                <button class="action-btn technique" onclick="showPage('techniquePage')">
+                    <span class="btn-icon">📜</span>
+                    <span class="btn-text">功法阁</span>
+                </button>
+                <button class="action-btn alchemy" onclick="showPage('alchemyPage')">
+                    <span class="btn-icon">⚗️</span>
+                    <span class="btn-text">炼丹房</span>
+                </button>
+                <button class="action-btn combat" onclick="showPage('combatPage')">
+                    <span class="btn-icon">⚔️</span>
+                    <span class="btn-text">历练战斗</span>
+                </button>
+                <button class="action-btn sect" onclick="showPage('sectPage')">
+                    <span class="btn-icon">🏛️</span>
+                    <span class="btn-text">宗门</span>
+                </button>
+                <button class="action-btn inventory" onclick="showPage('inventoryPage')">
+                    <span class="btn-icon">🎒</span>
+                    <span class="btn-text">储物袋</span>
+                </button>
+            </div>
+
+            <!-- 洞府装饰 -->
+            <div class="cave-decoration">
+                <p class="cave-desc">洞府等级：<span id="caveLevel">1</span>级</p>
+                <p class="cave-bonus">修炼速度：<span id="caveBonus">+0%</span></p>
+            </div>
+        </div>
+
+        <!-- 修炼页面 -->
+        <div id="cultivatePage" class="page">
+            <button class="back-btn" onclick="showPage('mainPage')">返回洞府</button>
+            <div class="page-title">
+                <h2>打坐修炼</h2>
+            </div>
+            <div class="cultivate-container">
+                <div class="meditation-circle">
+                    <div class="inner-circle" id="meditationCircle">
+                        <span id="cultivateStatus">点击开始修炼</span>
+                    </div>
+                </div>
+                <div class="cultivate-info">
+                    <p>当前境界：<span id="currentRealm"></span></p>
+                    <p>修炼进度：<span id="cultivateProgress">0%</span></p>
+                    <p>突破所需：<span id="breakthroughRequired">100</span>灵气</p>
+                </div>
+                <button class="ancient-btn large" id="cultivateBtn" onclick="startCultivate()">开始修炼</button>
+                <button class="ancient-btn large secondary" id="breakthroughBtn" onclick="attemptBreakthrough()" style="display:none;">尝试突破</button>
+            </div>
+        </div>
+
+        <!-- 功法阁页面 -->
+        <div id="techniquePage" class="page">
+            <button class="back-btn" onclick="showPage('mainPage')">返回洞府</button>
+            <div class="page-title">
+                <h2>功法阁</h2>
+            </div>
+            <div class="technique-container">
+                <div class="technique-categories">
+                    <button class="category-btn active" onclick="filterTechniques('all')">全部</button>
+                    <button class="category-btn" onclick="filterTechniques('sword')">剑诀</button>
+                    <button class="category-btn" onclick="filterTechniques('heart')">心法</button>
+                    <button class="category-btn" onclick="filterTechniques('pill')">丹方</button>
+                    <button class="category-btn" onclick="filterTechniques('formation')">阵法</button>
+                </div>
+                <div id="techniqueList" class="technique-list"></div>
+            </div>
+        </div>
+
+        <!-- 炼丹房页面 -->
+        <div id="alchemyPage" class="page">
+            <button class="back-btn" onclick="showPage('mainPage')">返回洞府</button>
+            <div class="page-title">
+                <h2>炼丹房</h2>
+            </div>
+            <div class="alchemy-container">
+                <div class="furnace-area">
+                    <div class="furnace" id="alchemyFurnace">
+                        <div class="furnace-fire" id="furnaceFire"></div>
+                        <div class="furnace-body">丹炉</div>
+                    </div>
+                    <div class="fire-control">
+                        <label>火候控制：</label>
+                        <input type="range" id="fireControl" min="0" max="100" value="50">
+                        <span id="fireLevel">50%</span>
+                    </div>
+                </div>
+                <div class="recipe-area">
+                    <h3>丹方选择</h3>
+                    <div id="recipeList" class="recipe-list"></div>
+                    <div class="ingredients-selected">
+                        <h4>已选材料</h4>
+                        <div id="selectedIngredients"></div>
+                    </div>
+                    <button class="ancient-btn large" onclick="startAlchemy()">开始炼丹</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 战斗页面 -->
+        <div id="combatPage" class="page">
+            <button class="back-btn" onclick="showPage('mainPage')">返回洞府</button>
+            <div class="page-title">
+                <h2>历练战斗</h2>
+            </div>
+            <div class="combat-container">
+                <div class="combatant player-side">
+                    <h3 id="playerCombatName">玩家</h3>
+                    <div class="combatant-avatar player-avatar">🧙</div>
+                    <div class="combat-stats">
+                        <div class="combat-bar hp">
+                            <div id="playerCombatHP" class="combat-bar-fill"></div>
+                            <span id="playerHPText">100/100</span>
+                        </div>
+                        <div class="combat-bar mp">
+                            <div id="playerCombatMP" class="combat-bar-fill"></div>
+                            <span id="playerMPText">100/100</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="combat-vs">VS</div>
+                <div class="combatant enemy-side">
+                    <h3 id="enemyName">妖兽</h3>
+                    <div class="combatant-avatar enemy-avatar">👹</div>
+                    <div class="combat-stats">
+                        <div class="combat-bar hp">
+                            <div id="enemyCombatHP" class="combat-bar-fill"></div>
+                            <span id="enemyHPText">100/100</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="combat-log" id="combatLog"></div>
+            <div class="combat-actions" id="combatActions">
+                <button class="ancient-btn" onclick="findEnemy()">寻找对手</button>
+            </div>
+        </div>
+
+        <!-- 宗门页面 -->
+        <div id="sectPage" class="page">
+            <button class="back-btn" onclick="showPage('mainPage')">返回洞府</button>
+            <div class="page-title">
+                <h2>宗门</h2>
+            </div>
+            <div class="sect-container">
+                <div class="sect-info" id="sectInfo">
+                    <p>当前宗门：<span id="currentSect">散修</span></p>
+                    <p>贡献度：<span id="contribution">0</span></p>
+                </div>
+                <div class="sect-selection" id="sectSelection">
+                    <h3>选择加入宗门</h3>
+                    <div class="sect-list">
+                        <div class="sect-card" onclick="joinSect('sword')">
+                            <h4>⚔️ 剑宗</h4>
+                            <p>以剑道立宗，攻击+20%</p>
+                        </div>
+                        <div class="sect-card" onclick="joinSect('pill')">
+                            <h4>⚗️ 丹宗</h4>
+                            <p>炼丹大师，丹药效果+30%</p>
+                        </div>
+                        <div class="sect-card" onclick="joinSect('formation')">
+                            <h4>🔮 阵宗</h4>
+                            <p>精通阵法，防御+25%</p>
+                        </div>
+                        <div class="sect-card" onclick="joinSect('casual')">
+                            <h4>🌙 散修</h4>
+                            <p>自由修炼，无束缚</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="sect-tasks" id="sectTasks" style="display:none;">
+                    <h3>宗门任务</h3>
+                    <div id="taskList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 储物袋页面 -->
+        <div id="inventoryPage" class="page">
+            <button class="back-btn" onclick="showPage('mainPage')">返回洞府</button>
+            <div class="page-title">
+                <h2>储物袋</h2>
+            </div>
+            <div class="inventory-container">
+                <div class="inventory-tabs">
+                    <button class="tab-btn active" onclick="filterInventory('all')">全部</button>
+                    <button class="tab-btn" onclick="filterInventory('pills')">丹药</button>
+                    <button class="tab-btn" onclick="filterInventory('materials')">材料</button>
+                    <button class="tab-btn" onclick="filterInventory('treasures')">法宝</button>
+                </div>
+                <div id="inventoryGrid" class="inventory-grid"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 浮动消息提示 -->
+    <div id="floatingMessages"></div>
+
+    <!-- 游戏脚本 -->
+    <script src="game.js"></script>
+</body>
+</html>
