@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { characters, clans, clanMembers } from '../../db/schema'
-import { getClanLevelBonus, realmConfigs } from '../../utils/game-engine'
+import { getClanLevelBonus } from '../../utils/game-engine'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId

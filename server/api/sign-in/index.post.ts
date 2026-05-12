@@ -47,15 +47,9 @@ export default defineEventHandler(async (event) => {
   const consecutiveDays = yesterdayRecord ? yesterdayRecord.consecutiveDays + 1 : 1
   const reward = calcReward(consecutiveDays)
 
-  // Create sign-in record
   await db.insert(signInRecords).values({
-    characterId: char.id,
-    signDate: today,
-    consecutiveDays,
-    reward: String(reward),
+    characterId: char.id, signDate: today, consecutiveDays, reward: String(reward),
   })
-
-  // Add reward lingshi
   const newLingshi = parseFloat(char.lingshi) + reward
   await db.update(characters)
     .set({ lingshi: String(newLingshi), updatedAt: new Date() })
