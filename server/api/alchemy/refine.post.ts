@@ -1,5 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { characters, inventory, alchemyRecords, pillTypeEnum } from '../../db/schema'
+import { fireAchievementCheck } from '../../utils/achievement-engine'
 
 const recipeCosts: Record<string, { materials: Record<string, number>; cost: number }> = {
   peiyuan_dan: { materials: { youhun_cao: 2, ningxue_hua: 1 }, cost: 50 },
@@ -99,5 +100,6 @@ export default defineEventHandler(async (event) => {
     quantity: 1,
   })
 
+  fireAchievementCheck(event, 'alchemy')
   return { success: true, message: '炼丹成功！' }
 })
