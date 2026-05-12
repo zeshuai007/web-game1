@@ -88,6 +88,50 @@ export const friendRequests = pgTable('friend_requests', {
   fromToIdx: uniqueIndex('from_to_idx').on(table.fromCharacterId, table.toCharacterId),
 }))
 
+export const clans = pgTable('clans', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 50 }).notNull().unique(),
+  description: varchar('description', { length: 500 }).notNull().default(''),
+  level: integer('level').notNull().default(1),
+  exp: integer('exp').notNull().default(0),
+  leaderCharacterId: uuid('leader_character_id').notNull().references(() => characters.id),
+  memberCount: integer('member_count').notNull().default(1),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const clanMembers = pgTable('clan_members', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  clanId: uuid('clan_id').notNull().references(() => clans.id, { onDelete: 'cascade' }),
+  characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }).unique(),
+  role: varchar('role', { length: 20 }).notNull().default('member'),
+  contributedExp: integer('contributed_exp').notNull().default(0),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+}, (table) => ({
+  clanCharacterIdx: uniqueIndex('clan_character_idx').on(table.clanId, table.characterId),
+}))
+
+export const clanTasks = pgTable('clan_tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  taskType: varchar('task_type', { length: 50 }).notNull(),
+  title: varchar('title', { length: 100 }).notNull(),
+  description: varchar('description', { length: 500 }).notNull(),
+  targetCount: integer('target_count').notNull().default(1),
+  rewardExp: integer('reward_exp').notNull().default(10),
+  rewardContribution: integer('reward_contribution').notNull().default(10),
+  taskDate: varchar('task_date', { length: 20 }).notNull(),
+})
+
+export const clanTaskProgress = pgTable('clan_task_progress', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  clanTaskId: uuid('clan_task_id').notNull().references(() => clanTasks.id, { onDelete: 'cascade' }),
+  characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  progress: integer('progress').notNull().default(0),
+  completed: integer('completed').notNull().default(0),
+  claimedAt: timestamp('claimed_at'),
+}, (table) => ({
+  taskCharIdx: uniqueIndex('task_char_idx').on(table.clanTaskId, table.characterId),
+}))
+
 export const equipment = pgTable('equipment', {
   id: uuid('id').primaryKey().defaultRandom(),
   characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
