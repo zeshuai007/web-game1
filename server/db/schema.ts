@@ -88,6 +88,18 @@ export const friendRequests = pgTable('friend_requests', {
   fromToIdx: uniqueIndex('from_to_idx').on(table.fromCharacterId, table.toCharacterId),
 }))
 
+export const equipment = pgTable('equipment', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  slot: varchar('slot', { length: 20 }).notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  quality: integer('quality').notNull().default(0), // 0=凡器 1=法器 2=宝器 3=灵器 4=仙器
+  bonusLingqiRate: decimal('bonus_lingqi_rate', { precision: 10, scale: 2 }).notNull().default('0'),
+  bonusLingshiRate: decimal('bonus_lingshi_rate', { precision: 10, scale: 2 }).notNull().default('0'),
+  equipped: integer('equipped').notNull().default(0), // 0=背包 1=已穿戴
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 export const daoRecords = pgTable('dao_records', {
   id: uuid('id').primaryKey().defaultRandom(),
   fromCharacterId: uuid('from_character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
