@@ -8,8 +8,7 @@ export default defineEventHandler(async (event) => {
   const { eventType, realm } = await readBody(event) || {}
   const db = useDB()
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   // Get current progress values — use event realm for breakthroughs
   const currentRealm = eventType === 'breakthrough' && realm ? realm : char.realm

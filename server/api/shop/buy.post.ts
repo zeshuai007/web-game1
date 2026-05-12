@@ -22,10 +22,7 @@ export default defineEventHandler(async (event) => {
   const price = shopPrices[itemId] * quantity
   const db = useDB()
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) {
-    throw createError({ statusCode: 404, message: '角色不存在' })
-  }
+  const char = await useCharacter(event)
 
   if (parseFloat(char.lingshi) < price) {
     throw createError({ statusCode: 400, message: '灵石不足' })

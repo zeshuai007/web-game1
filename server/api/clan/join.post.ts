@@ -6,8 +6,7 @@ export default defineEventHandler(async (event) => {
   const { clanId } = await readBody(event) || {}
   const db = useDB()
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   const [existing] = await db.select().from(clanMembers).where(eq(clanMembers.characterId, char.id)).limit(1)
   if (existing) throw createError({ statusCode: 409, message: '已加入宗门' })

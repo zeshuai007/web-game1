@@ -10,10 +10,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: '用户不存在' })
   }
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) {
-    throw createError({ statusCode: 404, message: '角色不存在' })
-  }
+  const char = await useCharacter(event)
 
   return {
     user: { id: user.id, email: user.email },

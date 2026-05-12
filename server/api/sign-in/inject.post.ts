@@ -9,8 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const db = useDB()
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
   if (char.id !== characterId) throw createError({ statusCode: 403, message: '角色不匹配' })
 
   await db.insert(signInRecords).values({ characterId, signDate, consecutiveDays, reward: String(reward) })

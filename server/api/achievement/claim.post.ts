@@ -7,8 +7,7 @@ export default defineEventHandler(async (event) => {
   const { achievementKey } = await readBody(event) || {}
   const db = useDB()
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   const [ach] = await db.select().from(achievements).where(eq(achievements.key, achievementKey)).limit(1)
   if (!ach) throw createError({ statusCode: 404, message: '成就不存在' })
