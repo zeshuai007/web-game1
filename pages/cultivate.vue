@@ -29,7 +29,7 @@
         <!-- Character Card -->
         <div class="bg-ink-900/70 border border-ink-700 rounded-lg p-6 text-center">
           <div class="relative w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-br from-jade-700 to-jade-900 flex items-center justify-center border-2 border-jade-500/30 overflow-hidden">
-            <img src="/images/decorations/breakthrough-circle.png" alt="" class="absolute inset-0 w-full h-full object-cover opacity-30" />
+            <img src="/images/decorations/breakthrough-circle.webp" alt="" class="absolute inset-0 w-full h-full object-cover opacity-30" />
             <span class="font-title text-2xl text-gold-400 relative z-10">{{ c.nickname?.[0] || '?' }}</span>
           </div>
           <div class="flex items-center justify-center gap-2">
@@ -43,14 +43,14 @@
           <div class="space-y-3">
             <ResourceBar
               label="修炼进度（灵气）"
-              icon="/images/icons/lingqi-icon.png"
+              icon="/images/icons/lingqi-icon.webp"
               :current="c.lingqi"
               :max="c.lingqiCap"
               bar-class="bg-jade-600"
             />
             <div class="flex justify-between items-center text-sm bg-ink-800/50 border border-ink-700 rounded-lg px-4 py-2.5">
               <span class="text-ink-300 flex items-center gap-1.5">
-                <img src="/images/icons/lingshi-icon.png" alt="" class="w-5 h-5 inline-block" />
+                <img src="/images/icons/lingshi-icon.webp" alt="" class="w-5 h-5 inline-block" />
                 灵石
               </span>
               <span class="text-gold-400 font-bold">{{ formatNumber(c.lingshi) }}</span>
