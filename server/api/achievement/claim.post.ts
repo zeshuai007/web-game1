@@ -21,16 +21,13 @@ export default defineEventHandler(async (event) => {
 
   const def = achievementDefs.find(d => d.key === achievementKey)
 
-  // Reward: lingshi
   const newLingshi = parseFloat(char.lingshi) + ach.rewardValue
   await db.update(characters).set({ lingshi: String(newLingshi) }).where(eq(characters.id, char.id))
 
-  // Reward: materials
   if (def?.materialRewards) {
     for (const mat of def.materialRewards) {
       const [inv] = await db.select().from(inventory)
-        .where(and(eq(inventory.characterId, char.id), eq(inventory.itemId, mat.id)))
-        .limit(1)
+        .where(and(eq(inventory.characterId, char.id), eq(inventory.itemId, mat.id))).limit(1)
       if (inv) {
         await db.update(inventory).set({ quantity: inv.quantity + mat.qty }).where(eq(inventory.id, inv.id))
       } else {
