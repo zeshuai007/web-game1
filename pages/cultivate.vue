@@ -17,7 +17,12 @@
             <img src="/images/decorations/breakthrough-circle.png" alt="" class="absolute inset-0 w-full h-full object-cover opacity-30" />
             <span class="font-title text-2xl text-gold-400 relative z-10">{{ c.nickname?.[0] || '?' }}</span>
           </div>
-          <h2 class="font-title text-xl text-gold-300 mb-1">{{ c.nickname || '未知' }}</h2>
+          <div class="flex items-center justify-center gap-2">
+            <h2 class="font-title text-xl text-gold-300 mb-1">{{ c.nickname || '未知' }}</h2>
+            <button @click="showEditProfile = true; editNickname = c.nickname || ''" class="text-ink-400 hover:text-gold-400 transition-colors text-sm mb-1">
+              ✎
+            </button>
+          </div>
           <p class="text-jade-400 text-sm mb-4">{{ realmLabel }} · 第{{ c.realmLayer }}{{ layerUnit }}</p>
 
           <div class="space-y-3">
@@ -70,7 +75,7 @@
               class="px-4 py-2 bg-gold-700 hover:bg-gold-600 disabled:bg-ink-700 disabled:text-ink-500 text-white rounded text-sm transition-colors">
               {{ signingIn ? '签到中...' : '签到' }}
             </button>
-            <div v-else class="text-jade-400 text-sm font-bold">✓ 已签到</div>
+            <div v-if="signInStatus.signedIn" class="text-jade-400 text-sm font-bold">[V] 已签到</div>
           </div>
           <div v-if="signInReward > 0" class="mt-2 text-xs text-gold-400">
             获得 {{ signInReward }} 灵石奖励
@@ -112,6 +117,45 @@
       </div>
     </div>
 
+    <!-- Adventure Event Modal -->
+    <Teleport to="body">
+      <div v-if="adventureEvent" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" @click.self="adventureEvent = null">
+        <div class="bg-ink-900 border border-gold-600/30 rounded-lg w-full max-w-md p-6 mx-4 shadow-2xl">
+          <h3 class="font-title text-xl text-gold-400 mb-2 text-center">{{ adventureEvent.data.title }}</h3>
+          <p class="text-ink-300 text-sm mb-4 text-center">{{ adventureEvent.data.description }}</p>
+          <div v-if="!adventureResult" class="space-y-2">
+            <button v-for="choice in adventureEvent.data.choices" :key="choice.index" @click="handleAdventureChoice(choice.index)"
+              class="w-full py-2.5 px-4 bg-ink-800 hover:bg-ink-700 border border-ink-600 rounded text-sm text-ink-200 text-left transition-colors">
+              <span class="text-gold-400 font-bold">{{ choice.label }}</span>
+              <span class="text-ink-400 block text-xs mt-0.5">{{ choice.desc }}</span>
+            </button>
+          </div>
+          <div v-else class="text-center">
+            <p class="text-jade-400 text-sm mb-4">{{ adventureResult.message }}</p>
+            <button @click="adventureEvent = null; adventureResult = null" class="px-4 py-2 bg-ink-700 hover:bg-ink-600 text-ink-200 rounded text-sm transition-colors">关闭</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Edit Profile Modal -->
+    <Teleport to="body">
+      <div v-if="showEditProfile" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" @click.self="showEditProfile = false">
+        <div class="bg-ink-900 border border-ink-700 rounded-lg w-full max-w-sm p-6 mx-4">
+          <h3 class="font-title text-xl text-gold-400 mb-4 text-center">修改道号</h3>
+          <input v-model="editNickname" type="text" maxlength="20" placeholder="输入新道号"
+            class="w-full px-4 py-2.5 bg-ink-950 border border-ink-600 rounded focus:border-jade-500 focus:outline-none text-ink-100 placeholder-ink-500 mb-4" />
+          <div v-if="editError" class="text-blood-400 text-sm mb-3">{{ editError }}</div>
+          <div class="flex gap-3">
+            <button @click="showEditProfile = false" class="flex-1 py-2 bg-ink-700 hover:bg-ink-600 text-ink-200 rounded transition-colors">取消</button>
+            <button @click="handleSaveProfile" :disabled="savingProfile" class="flex-1 py-2 bg-jade-700 hover:bg-jade-600 disabled:bg-ink-700 disabled:text-ink-500 text-white rounded transition-colors">
+              {{ savingProfile ? '保存中...' : '保存' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <BreakthroughModal
       :show="showBreakthrough"
       :current-realm-label="realmLabel"
@@ -137,6 +181,30 @@ const c = auth.character // top-level ref for template auto-unwrap
 const signInStatus = reactive({ signedIn: false, consecutiveDays: 0 })
 const signingIn = ref(false)
 const signInReward = ref(0)
+
+// Profile edit
+const showEditProfile = ref(false)
+const editNickname = ref('')
+const editError = ref('')
+const savingProfile = ref(false)
+
+async function handleSaveProfile() {
+  editError.value = ''
+  savingProfile.value = true
+  try {
+    await $fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: auth.getHeaders(),
+      body: { nickname: editNickname.value },
+    })
+    await auth.fetchMe()
+    showEditProfile.value = false
+  } catch (e) {
+    editError.value = e.data?.message || e.message || '保存失败'
+  } finally {
+    savingProfile.value = false
+  }
+}
 
 async function fetchSignInStatus() {
   try {
@@ -164,6 +232,36 @@ async function handleSignIn() {
   }
 }
 
+// Adventure events
+const adventureEvent = ref(null)
+const adventureResult = ref(null)
+
+async function checkAdventure() {
+  if (adventureEvent.value) return // already showing
+  try {
+    const res = await $fetch('/api/adventure/pending', { headers: auth.getHeaders() })
+    if (res.event) {
+      adventureEvent.value = res.event
+    }
+  } catch { /* ignore */ }
+}
+
+async function handleAdventureChoice(choice) {
+  try {
+    const res = await $fetch('/api/adventure/resolve', {
+      method: 'POST',
+      headers: auth.getHeaders(),
+      body: { choice },
+    })
+    adventureResult.value = res
+    gameLog.addEvent('奇遇：' + res.message)
+    await auth.fetchMe()
+    await fetchInventory()
+  } catch (e) {
+    gameLog.addEvent('奇遇失败：' + (e.data?.message || e.message || '未知错误'))
+  }
+}
+
 onMounted(async () => {
   if (!auth.isLoggedIn()) {
     router.push('/')
@@ -173,6 +271,9 @@ onMounted(async () => {
   await fetchSignInStatus()
   await fetchInventory()
   gameLog.start()
+  // Check for adventure events on a timer
+  setInterval(checkAdventure, 30000) // every 30 seconds
+  checkAdventure()
 })
 
 // Realm background mapping

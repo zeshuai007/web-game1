@@ -47,7 +47,7 @@ const messageType = ref('success')
 
 onMounted(async () => {
   if (!auth.isLoggedIn()) { router.push('/'); return }
-  const res = await $fetch('/api/shop/items')
+  const res = await $fetch('/api/shop/items', { headers: auth.getHeaders() })
   items.value = res.items
 })
 

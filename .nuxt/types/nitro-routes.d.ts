@@ -3,6 +3,15 @@ import type { Serialize, Simplify } from "nitropack/types";
 declare module "nitropack/types" {
   type Awaited<T> = T extends PromiseLike<infer U> ? Awaited<U> : T
   interface InternalApi {
+    '/api/adventure/clear': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/adventure/clear.post').default>>>>
+    }
+    '/api/adventure/pending': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/adventure/pending.get').default>>>>
+    }
+    '/api/adventure/resolve': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/adventure/resolve.post').default>>>>
+    }
     '/api/alchemy/list': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/alchemy/list.get').default>>>>
     }
@@ -14,6 +23,9 @@ declare module "nitropack/types" {
     }
     '/api/auth/me': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/me.get').default>>>>
+    }
+    '/api/auth/profile': {
+      'put': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/profile.put').default>>>>
     }
     '/api/auth/register': {
       'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/auth/register.post').default>>>>

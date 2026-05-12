@@ -56,7 +56,7 @@ const rankings = ref([])
 onMounted(async () => {
   if (!auth.isLoggedIn()) { router.push('/'); return }
   try {
-    const res = await $fetch('/api/rankings')
+    const res = await $fetch('/api/rankings', { headers: auth.getHeaders() })
     rankings.value = res.rankings
   } catch { /* ignore */ }
 })
