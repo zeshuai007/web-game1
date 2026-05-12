@@ -26,6 +26,7 @@ const route = useRoute()
 const navItems = [
   { to: '/cultivate', label: '修炼' },
   { to: '/friends', label: '好友' },
+  { to: '/clan', label: '宗门' },
   { to: '/alchemy', label: '丹房' },
   { to: '/forge', label: '炼器' },
   { to: '/achievements', label: '成就' },
