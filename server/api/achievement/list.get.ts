@@ -1,6 +1,5 @@
 import { eq, and } from 'drizzle-orm'
-import { characters, achievements, characterAchievements } from '../../db/schema'
-import { achievementDefs } from '../../utils/achievement-engine'
+import { characters, achievements, characterAchievements, configAchievementDefs } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -8,12 +7,12 @@ export default defineEventHandler(async (event) => {
 
   const char = await useCharacter(event)
 
-  // Init achievements if first time
   const existing = await db.select().from(characterAchievements)
     .where(eq(characterAchievements.characterId, char.id)).limit(1)
 
   if (existing.length === 0) {
-    for (const def of achievementDefs) {
+    const defs = await db.select().from(configAchievementDefs).orderBy(configAchievementDefs.sortOrder)
+    for (const def of defs) {
       let achId = ''
       const [existingAch] = await db.select().from(achievements).where(eq(achievements.key, def.key)).limit(1)
       if (existingAch) {
