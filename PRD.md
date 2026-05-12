@@ -148,19 +148,55 @@
 - `npm test` — 全量单元+集成测试
 - `npm run test:e2e` — Playwright E2E 测试（需要 dev server 运行）
 
-## 待优化项
+## 架构深化（代码质量优化）
 
-1. 炼丹页增加"修炼丹/破境丹"筛选标签，破境丹以金色高亮
-2. 突破弹窗增加"缺少破境丹？前去炼制"跳转链接
-3. 修炼页/炼丹页等营养加载状态优化
+代码库经过多轮功能迭代后暴露出 6 个架构问题，按依赖顺序修复：
+
+### 1. 配置数据去重 (Config Dedup)
+- **问题**：炼丹配方（13 种）在 `alchemy/list.get.ts` 和 `alchemy/refine.post.ts` 中各写一次。锻造配方（4 种）在 `game-engine.ts` 和 `forge.vue` 中各写一次。修改配方需改两处。
+- **方案**：所有配方定义集中在 `game-engine.ts`。`list` 和 `refine` 端点从 engine 导入。`forge.vue` 通过 API 获取配方。
+- **接口设计**：`game-engine.ts` 导出 `alchemyRecipes`、`forgeRecipes`，作为单一事实源。
+- **涉及**：`server/utils/game-engine.ts`, `server/api/alchemy/list.get.ts`, `server/api/alchemy/refine.post.ts`, `pages/forge.vue`
+
+### 2. 获取角色样板代码消除 (Auth Context)
+- **问题**：30+ 个 API 端点重复 `db.select().from(characters).where(eq(characters.userId, userId))` — 37 处重复，零抽象。
+- **方案**：auth middleware 中将角色行注入 `event.context.character`。新建 `useCharacter(event)` 辅助函数。
+- **接口设计**：`event.context.character` 由中间件保证存在（不存在则 throw 404）。API 端点直接 `const char = event.context.character`。
+- **涉及**：`server/middleware/auth.ts`，全部 30+ API 端点
+
+### 3. 成就检查内联化 (Inline Achievement)
+- **问题**：`fireAchievementCheck` 通过 `$fetch('/api/achievement/check')` 自 HTTP 调用回同一服务器，需要传递 auth header，失败被静默吞掉。
+- **方案**：将成就判定逻辑提取为可直接调用的函数，替换自 HTTP 调用。
+- **接口设计**：`checkAchievements(event, eventType, realm?)` 返回 `completed[]`，直接调用而非 HTTP。
+- **涉及**：`server/utils/achievement-engine.ts`, 触发成就的 5 个 API 端点
+
+### 4. 事务支持 (Transaction)
+- **问题**：多表修改操作无事务（clan 创建扣灵石+建宗+加成员、炼丹扣灵石+扣材料+加丹+记日志）。部分失败时状态不一致。
+- **方案**：使用 drizzle 的 `db.transaction()` 包裹关键多表操作。
+- **涉及**：`server/api/clan/create.post.ts`, `alchemy/refine.post.ts`, `forge/craft.post.ts`, `sign-in/index.post.ts`, `achievement/claim.post.ts`
+
+### 5. game-engine 模块拆分 (Module Split)
+- **问题**：`game-engine.ts` 253 行包含 6 个不相关功能（境界、丹药、奇遇、锻造、宗门、材料名）。接口= "从这里 import"，无内部分组。
+- **方案**：按职责拆分为独立文件，`game-engine.ts` 保留为 re-export 聚合器。
+- **接口设计**：
+  - `realm-config.ts` — 境界配置、突破概率、境界工具函数
+  - `alchemy-data.ts` — 丹药名称、炼丹配方
+  - `adventure-data.ts` — 奇遇事件定义 + 引擎
+  - `forge-data.ts` — 锻造配方、品质配置
+  - `clan-data.ts` — 宗门等级、每日任务
+  - `game-engine.ts` — 聚合 re-export + 离线收益等纯函数
+- **涉及**：`server/utils/game-engine.ts`, 所有引用它的模块和测试
+
+### 6. useAuth 重构 (Auth Composables)
+- **问题**：`auth` 是模块级单例，`character` 是嵌套在普通对象中的 ref。每个页面需 `const c = auth.character` 绕过 Vue 模板解包问题，已导致多次 bug。
+- **方案**：使用 Pinia 或 `useState` 替代模块级 ref。
+- **涉及**：`composables/useAuth.ts`, `composables/useGameLoop.ts`, 所有 pages
 
 ## Out of Scope
 
 - 实时通信（WebSocket），当前使用轮询（15秒间隔）
 - 第三方登录（微信/GitHub OAuth）
-- 宗门系统
 - 全服活动系统
-- 成就系统
 - 聊天系统
 - E2E 测试 CI 自动化集成
 
@@ -168,5 +204,5 @@
 
 - 图片资源由 AI 工具生成，存储在 `public/images/`，共 17 张 PNG
 - 游戏引擎配置集中在 `server/utils/game-engine.ts`
-- 当前 71 条测试全部通过（30 单元 + 41 集成）
+- 当前 84 条测试全部通过（79 集成 + 5 E2E）
 - 5 条 Playwright E2E 测试覆盖核心路径
