@@ -1,9 +1,0 @@
-{
-  "pid": 89702,
-  "startedAt": 1778573853349,
-  "command": "dev",
-  "cwd": "/home/zeshuai007/claude/webgames/xianni-game",
-  "port": 3000,
-  "hostname": "127.0.0.1",
-  "url": "http://127.0.0.1:3000"
-}
