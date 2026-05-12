@@ -11,8 +11,29 @@
 
       <h2 class="font-title text-2xl text-gold-400 mb-6 text-center tracking-wider">丹 房</h2>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div v-for="recipe in recipes" :key="recipe.id"
+      <!-- Filter tabs -->
+      <div class="flex justify-center gap-2 mb-6">
+        <button @click="filter = 'all'" class="px-4 py-1.5 rounded text-sm transition-colors"
+          :class="filter === 'all' ? 'bg-jade-700 text-white' : 'bg-ink-800 text-ink-300 hover:bg-ink-700'">全部</button>
+        <button @click="filter = 'cultivation'" class="px-4 py-1.5 rounded text-sm transition-colors"
+          :class="filter === 'cultivation' ? 'bg-jade-700 text-white' : 'bg-ink-800 text-ink-300 hover:bg-ink-700'">修炼丹</button>
+        <button @click="filter = 'breakthrough'" class="px-4 py-1.5 rounded text-sm transition-colors"
+          :class="filter === 'breakthrough' ? 'bg-gold-700 text-white' : 'bg-ink-800 text-ink-300 hover:bg-ink-700'">破境丹</button>
+      </div>
+
+      <!-- Skeleton during load -->
+      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div v-for="n in 6" :key="n" class="bg-ink-900/70 border border-ink-700 rounded-lg p-5 space-y-3">
+          <SkeletonBlock height="h-5" width="w-1/3" />
+          <SkeletonBlock height="h-3" width="w-1/2" />
+          <SkeletonBlock height="h-3" />
+          <SkeletonBlock height="h-3" width="w-2/3" />
+          <SkeletonBlock height="h-8" />
+        </div>
+      </div>
+
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div v-for="recipe in filteredRecipes" :key="recipe.id"
           class="bg-ink-900/70 border border-ink-700 rounded-lg p-5 hover:border-jade-600/50 transition-colors">
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-2">
@@ -65,14 +86,23 @@
 import { auth } from '~/composables/useAuth'
 
 const router = useRouter()
+const route = useRoute()
 const recipes = ref([])
 const inventory = ref([])
 const message = ref('')
 const messageType = ref('success')
+const filter = ref((route.query.filter) || 'all')
+const loading = ref(true)
+
+const filteredRecipes = computed(() => {
+  if (filter.value === 'all') return recipes.value
+  return recipes.value.filter(r => r.type === filter.value)
+})
 
 onMounted(async () => {
   if (!auth.isLoggedIn()) { router.push('/'); return }
   await Promise.all([fetchRecipes(), fetchInventory()])
+  loading.value = false
 })
 
 async function fetchRecipes() {

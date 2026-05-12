@@ -4,8 +4,23 @@
     <div class="fixed inset-0 bg-ink-950/60 transition-opacity duration-1000 -z-10"></div>
     <GameHeader />
 
-    <div v-if="!c?.nickname" class="flex-1 flex items-center justify-center">
-      <p class="text-ink-400 animate-pulse">加载中...</p>
+    <div v-if="!c?.nickname" class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-1 space-y-4">
+        <div class="bg-ink-900/70 border border-ink-700 rounded-lg p-6 space-y-4">
+          <div class="flex justify-center"><SkeletonBlock height="h-20" width="w-20" extraStyle="border-radius:9999px" /></div>
+          <SkeletonBlock height="h-5" width="w-2/3" extraStyle="margin:0 auto" />
+          <SkeletonBlock height="h-3" width="w-1/2" extraStyle="margin:0 auto" />
+          <div class="space-y-3 pt-4">
+            <SkeletonBlock height="h-3" />
+            <SkeletonBlock height="h-3" width="w-3/4" />
+            <div class="grid grid-cols-2 gap-2"><SkeletonBlock height="h-12" /><SkeletonBlock height="h-12" /></div>
+          </div>
+        </div>
+        <SkeletonBlock height="h-24" />
+      </div>
+      <div class="lg:col-span-2">
+        <SkeletonBlock height="h-64" />
+      </div>
     </div>
 
     <div v-else class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -165,6 +180,7 @@
       :result="breakthroughResult"
       @close="showBreakthrough = false; breakthroughResult = null"
       @attempt="attemptBreakthrough"
+      @go-alchemy="router.push('/alchemy?filter=breakthrough'); showBreakthrough = false"
     />
   </div>
 </template>

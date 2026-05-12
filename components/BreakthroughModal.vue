@@ -22,6 +22,12 @@
           </div>
         </div>
 
+        <div v-if="!hasPillInInventory && !result" class="text-center mb-3">
+          <button @click="$emit('goAlchemy')" class="text-jade-400 hover:text-jade-300 text-xs underline transition-colors">
+            缺少破境丹？前去炼制 →
+          </button>
+        </div>
+
         <div v-if="result" class="text-center mb-4">
           <p v-if="result.success" class="text-jade-400 text-lg">{{ result.message }}</p>
           <p v-else class="text-blood-400 text-lg">{{ result.message }}</p>
@@ -56,5 +62,5 @@ defineProps({
   result: Object,
 })
 
-defineEmits(['close', 'attempt'])
+defineEmits(['close', 'attempt', 'goAlchemy'])
 </script>

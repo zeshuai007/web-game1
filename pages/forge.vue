@@ -8,7 +8,17 @@
       <h2 class="font-title text-2xl text-gold-400 mb-6 text-center tracking-wider">炼 器</h2>
 
       <!-- Recipe List -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div v-for="n in 4" :key="n" class="bg-ink-900/70 border border-ink-700 rounded-lg p-4 space-y-3">
+          <SkeletonBlock height="h-5" width="w-1/3" />
+          <SkeletonBlock height="h-3" width="w-1/2" />
+          <SkeletonBlock height="h-3" />
+          <SkeletonBlock height="h-3" width="w-2/3" />
+          <SkeletonBlock height="h-8" />
+        </div>
+      </div>
+
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div v-for="recipe in recipes" :key="recipe.id" class="bg-ink-900/70 border border-ink-700 rounded-lg p-4 hover:border-jade-600/50 transition-colors">
           <h3 class="font-bold text-gold-300 mb-1">{{ recipe.name }}</h3>
           <p class="text-xs text-ink-400 mb-2">栏位：{{ slotNames[recipe.slot] || recipe.slot }}</p>
@@ -61,6 +71,7 @@ const router = useRouter()
 const recipes = ref([])
 const equipList = ref([])
 const crafting = ref('')
+const loading = ref(true)
 const message = ref('')
 const msgType = ref('ok')
 
@@ -71,6 +82,7 @@ function materialLabel(id) { return materialLabels[id] || id }
 onMounted(async () => {
   if (!auth.isLoggedIn()) { router.push('/'); return }
   await load()
+  loading.value = false
 })
 
 async function load() {
