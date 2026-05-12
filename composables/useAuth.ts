@@ -1,75 +1,43 @@
 interface Character {
-  id: string
-  userId: string
-  nickname: string
-  realm: string
-  realmLayer: number
-  lingqi: string
-  lingqiCap: string
-  lingshi: string
-  lingshiRate: string
-  lingqiRate: string
-  offlineStartedAt: string
+  id: string; userId: string; nickname: string; realm: string
+  realmLayer: number; lingqi: string; lingqiCap: string; lingshi: string
+  lingshiRate: string; lingqiRate: string; offlineStartedAt: string
 }
 
-function getToken(): string | null {
-  if (process.client) {
-    return localStorage.getItem('token')
-  }
+function loadFromStorage(key: string): string | null {
+  if (process.client) return localStorage.getItem(key)
   return null
 }
 
-function setToken(val: string | null) {
+function saveToStorage(key: string, val: string | null) {
   if (process.client) {
-    if (val) {
-      localStorage.setItem('token', val)
-    } else {
-      localStorage.removeItem('token')
-    }
-  }
-}
-
-function getUserId(): string | null {
-  if (process.client) {
-    return localStorage.getItem('userId')
-  }
-  return null
-}
-
-function setUserId(val: string | null) {
-  if (process.client) {
-    if (val) {
-      localStorage.setItem('userId', val)
-    } else {
-      localStorage.removeItem('userId')
-    }
+    if (val) localStorage.setItem(key, val)
+    else localStorage.removeItem(key)
   }
 }
 
 export function useAuth() {
-  const token = ref<string | null>(getToken())
-  const userId = ref<string | null>(getUserId())
-  const character = ref<Character | null>(null)
-  const loading = ref(true)
+  const token = ref<string | null>(loadFromStorage('token'))
+  const userId = ref<string | null>(loadFromStorage('userId'))
+  const character = useState<Character | null>('auth-character', () => null)
 
   function setAuth(newToken: string, newUserId: string) {
     token.value = newToken
     userId.value = newUserId
-    setToken(newToken)
-    setUserId(newUserId)
+    saveToStorage('token', newToken)
+    saveToStorage('userId', newUserId)
   }
 
   function clearAuth() {
     token.value = null
     userId.value = null
     character.value = null
-    setToken(null)
-    setUserId(null)
+    saveToStorage('token', null)
+    saveToStorage('userId', null)
   }
 
   function getHeaders() {
-    const t = token.value || getToken()
-    return t ? { Authorization: `Bearer ${t}` } : {}
+    return token.value ? { Authorization: `Bearer ${token.value}` } : {}
   }
 
   async function fetchMe() {
@@ -88,30 +56,24 @@ export function useAuth() {
   }
 
   async function login(email: string, password: string) {
-    const res = await $fetch('/api/auth/login', {
-      method: 'POST',
-      body: { email, password },
-    })
+    const res = await $fetch('/api/auth/login', { method: 'POST', body: { email, password } })
     setAuth(res.token, res.userId)
     await fetchMe()
     return res
   }
 
   async function register(email: string, password: string, nickname?: string) {
-    const res = await $fetch('/api/auth/register', {
-      method: 'POST',
-      body: { email, password, nickname },
-    })
+    const res = await $fetch('/api/auth/register', { method: 'POST', body: { email, password, nickname } })
     setAuth(res.token, res.userId)
     await fetchMe()
     return res
   }
 
   function isLoggedIn() {
-    return !!(token.value || getToken())
+    return !!token.value
   }
 
-  return { token, userId, character, loading, login, register, fetchMe, clearAuth, getHeaders, isLoggedIn, setAuth }
+  return { token, userId, character, loading: ref(false), login, register, fetchMe, clearAuth, getHeaders, isLoggedIn, setAuth }
 }
 
 export const auth = useAuth()
