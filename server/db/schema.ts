@@ -1,5 +1,63 @@
 import { pgTable, uuid, varchar, integer, timestamp, uniqueIndex, decimal } from 'drizzle-orm/pg-core'
 
+// ─── Configuration tables ───────────────────────────────────────
+export const configRealms = pgTable('config_realms', {
+  key: varchar('key', { length: 50 }).primaryKey(),
+  label: varchar('label', { length: 50 }).notNull(),
+  lingqiCap: decimal('lingqi_cap', { precision: 10, scale: 2 }).notNull(),
+  lingshiRate: decimal('lingshi_rate', { precision: 10, scale: 2 }).notNull(),
+  lingqiRate: decimal('lingqi_rate', { precision: 10, scale: 2 }).notNull(),
+  breakthroughChance: decimal('breakthrough_chance', { precision: 4, scale: 2 }).notNull(),
+  maxLayer: integer('max_layer').notNull().default(3),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+export const configShopItems = pgTable('config_shop_items', {
+  itemId: varchar('item_id', { length: 50 }).primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: varchar('description', { length: 200 }).notNull().default(''),
+  price: integer('price').notNull(),
+  itemType: varchar('item_type', { length: 50 }).notNull().default('material'),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+export const configForgeRecipes = pgTable('config_forge_recipes', {
+  recipeId: varchar('recipe_id', { length: 50 }).primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  slot: varchar('slot', { length: 20 }).notNull(),
+  materialsJson: varchar('materials_json', { length: 500 }).notNull(),
+  cost: integer('cost').notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+export const configAlchemyRecipes = pgTable('config_alchemy_recipes', {
+  pillId: varchar('pill_id', { length: 50 }).primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  type: varchar('type', { length: 20 }).notNull(),
+  materialsJson: varchar('materials_json', { length: 500 }).notNull(),
+  cost: integer('cost').notNull(),
+  effect: varchar('effect', { length: 100 }).notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+export const configAchievementDefs = pgTable('config_achievement_defs', {
+  key: varchar('key', { length: 50 }).primaryKey(),
+  category: varchar('category', { length: 20 }).notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: varchar('description', { length: 200 }).notNull(),
+  conditionType: varchar('condition_type', { length: 50 }).notNull(),
+  conditionValue: integer('condition_value').notNull().default(0),
+  rewardType: varchar('reward_type', { length: 50 }).notNull().default('lingshi'),
+  rewardValue: integer('reward_value').notNull().default(0),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+export const configMaterialNames = pgTable('config_material_names', {
+  itemId: varchar('item_id', { length: 50 }).primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   email: varchar('email', { length: 255 }).notNull().unique(),

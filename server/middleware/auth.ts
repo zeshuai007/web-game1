@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { users } from '../db/schema'
 
-const publicRoutes = ['/api/auth/register', '/api/auth/login']
+const publicRoutes = ['/api/auth/register', '/api/auth/login', '/api/config/game', '/api/rankings']
 
 export default defineEventHandler(async (event) => {
   // Only apply to API routes
