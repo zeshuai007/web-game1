@@ -9,27 +9,27 @@
 ```
 public/images/
 ├── backgrounds/       # 页面背景图 (1920×1080)
-│   ├── login-bg.png
-│   ├── cultivate-bg.png
-│   ├── alchemy-bg.png
-│   ├── shop-bg.png
-│   ├── rankings-bg.png
-│   ├── tribulation-bg.png
+│   ├── login-bg.webp
+│   ├── cultivate-bg.webp
+│   ├── alchemy-bg.webp
+│   ├── shop-bg.webp
+│   ├── rankings-bg.webp
+│   ├── tribulation-bg.webp
 │   └── realms/         # 七大境界独立背景
-│       ├── realm-1-condensing.png
-│       ├── realm-2-foundation.png
-│       ├── realm-3-core.png
-│       ├── realm-4-nascent.png
-│       ├── realm-5-deity.png
-│       ├── realm-6-nascent-trans.png
-│       └── realm-7-seeking.png
+│       ├── realm-1-condensing.webp
+│       ├── realm-2-foundation.webp
+│       ├── realm-3-core.webp
+│       ├── realm-4-nascent.webp
+│       ├── realm-5-deity.webp
+│       ├── realm-6-nascent-trans.webp
+│       └── realm-7-seeking.webp
 ├── decorations/       # 装饰图 (512×512)
-│   ├── cauldron.png
-│   ├── breakthrough-circle.png
-│   └── pill-glow.png
+│   ├── cauldron.webp
+│   ├── breakthrough-circle.webp
+│   └── pill-glow.webp
 └── icons/             # 图标 (128×128)
-    ├── lingqi-icon.png
-    └── lingshi-icon.png
+    ├── lingqi-icon.webp
+    └── lingshi-icon.webp
 ```
 
 ---
@@ -43,7 +43,7 @@ public/images/
 **English prompt (paste into Gemini):**
 > Ink wash painting style, dark fantasy Chinese xianxia landscape, towering celestial mountains fading into misty clouds, golden divine light piercing through dark storm clouds, ancient pine tree silhouettes at the bottom, jade-green and gold accents against deep almost-black background, ethereal atmosphere, mysterious and solemn, epic wide landscape 1920x1080, cinematic lighting, low saturation with selective gold highlights, mist and cloud layers
 
-**→ 保存为 `public/images/backgrounds/login-bg.png`**
+**→ 保存为 `public/images/backgrounds/login-bg.webp`**
 
 ---
 
@@ -54,7 +54,7 @@ public/images/
 **English prompt:**
 > Dark cultivation cave interior, xianxia style, deep indigo shadows, glowing cyan rune symbols on stone walls, a woven straw meditation cushion on a stone platform, moonlight streaming through cave opening, luminous glowing herbs and fungi growing from rock crevices, an ancient bronze incense burner with thin spiral of golden smoke, mysterious atmosphere, low-key lighting with cool blue and jade highlights, cinematic, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/cultivate-bg.png`**
+**→ 保存为 `public/images/backgrounds/cultivate-bg.webp`**
 
 ---
 
@@ -65,7 +65,7 @@ public/images/
 **English prompt:**
 > Ancient Chinese alchemy chamber, dark xianxia style, center focus on a large bronze tripod cauldron with ancient seal script carvings, cyan-green spirit flame burning beneath the cauldron, wooden shelves with ceramic jars and dried herbs hanging from ceiling, gourds and scrolls scattered around, warm amber and jade-green fire light as main illumination, deep shadows in corners, smoke swirling upward, cinematic lighting, dramatic contrast, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/alchemy-bg.png`**
+**→ 保存为 `public/images/backgrounds/alchemy-bg.webp`**
 
 ---
 
@@ -76,7 +76,7 @@ public/images/
 **English prompt:**
 > Night scene of a xianxia cultivation marketplace street, ancient Chinese architecture with upturned eaves, warm orange glowing paper lanterns hanging in rows, street stalls displaying glowing spirit stones and herbs, silhouettes of cultivators browsing, a grand ancient pagoda in the distance, deep blue night sky with faint stars, warm amber light contrasting with cool shadows, bustling yet mysterious atmosphere, cinematic wide shot, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/shop-bg.png`**
+**→ 保存为 `public/images/backgrounds/shop-bg.webp`**
 
 ---
 
@@ -87,7 +87,7 @@ public/images/
 **English prompt:**
 > A colossal ancient stone stele, like Celestial Ranking Stele, towering above clouds on a mountain peak, xianxia dark fantasy style, golden glowing ancient characters carved into the dark stone surface, misty sea of clouds below, first light of dawn on the horizon, dramatic vertical composition, the stele fills the frame left side, empty sky on right, majestic and awe-inspiring, cinematic lighting, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/rankings-bg.png`**
+**→ 保存为 `public/images/backgrounds/rankings-bg.webp`**
 
 ---
 
@@ -98,7 +98,7 @@ public/images/
 **English prompt:**
 > Dark apocalyptic sky, massive swirling black storm clouds with a vortex opening at center, golden lightning bolts forking in all directions, a pillar of heavenly tribulation light descending from the vortex, mountains silhouetted below, intense atmosphere of judgment and power, dark blue-black with electric gold, dramatic and fearful, epic wide landscape, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/tribulation-bg.png`**
+**→ 保存为 `public/images/backgrounds/tribulation-bg.webp`**
 
 ---
 
@@ -111,7 +111,7 @@ public/images/
 **English prompt:**
 > Xianxia cultivation realm: Condensing Qi stage, misty mountain path at dawn, green mossy stone steps winding through bamboo forest, faint floating spirit light particles in the air, soft jade-green and pale gold atmosphere, ground covered in glowing spiritual herbs, peaceful yet mysterious, morning mist layers, low saturation cinematic style, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/realms/realm-1-condensing.png`**
+**→ 保存为 `public/images/backgrounds/realms/realm-1-condensing.webp`**
 
 ---
 
@@ -122,7 +122,7 @@ public/images/
 **English prompt:**
 > Xianxia foundation establishment stage scene, ancient sect courtyard at midnight, full moon casting silver light, a large stone incense burner with thin smoke rising, weathered stone tablets and ancient trees surrounding the courtyard, warm yellow lantern light from paper windows of hall behind, pale yellow and silver color palette, peaceful and dignified, cinematic atmospheric, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/realms/realm-2-foundation.png`**
+**→ 保存为 `public/images/backgrounds/realms/realm-2-foundation.webp`**
 
 ---
 
@@ -133,7 +133,7 @@ public/images/
 **English prompt:**
 > Core formation realm, underground cultivation chamber, a floating golden core pill spinning slowly in mid-air, surrounded by swirling flame-shaped spiritual energy, circular array formations glowing on the stone floor and walls in dark gold, intense warm firelight casting dramatic shadows, golden and amber color scheme, sacred and intense atmosphere, cinematic 1920x1080
 
-**→ 保存为 `public/images/backgrounds/realms/realm-3-core.png`**
+**→ 保存为 `public/images/backgrounds/realms/realm-3-core.webp`**
 
 ---
 
@@ -144,7 +144,7 @@ public/images/
 **English prompt:**
 > Nascent Soul realm, a meditating cultivator silhouette, a glowing miniature humanoid figure (nascent soul) emerging above the head, radiating brilliant violet-blue spiritual light, swirling energy vortex around, cosmic particles floating in the air, the space seems to warp with spiritual pressure, purple-blue and jade color scheme, otherworldly mystical atmosphere, cinematic 1920x1080
 
-**→ 保存为 `public/images/backgrounds/realms/realm-4-nascent.png`**
+**→ 保存为 `public/images/backgrounds/realms/realm-4-nascent.webp`**
 
 ---
 
@@ -155,7 +155,7 @@ public/images/
 **English prompt:**
 > Deity Transformation realm, a cultivator's primordial spirit manifesting as a giant ethereal avatar behind the physical body, golden divine light radiating outward in beams, heaven and earth resonating, clouds pierced by pillars of celestial light, majestic and transcendent, warm gold-white color scheme, epic scale, cinematic lighting, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/realms/realm-5-deity.png`**
+**→ 保存为 `public/images/backgrounds/realms/realm-5-deity.webp`**
 
 ---
 
@@ -166,7 +166,7 @@ public/images/
 **English prompt:**
 > Nascent Transformation realm, phoenix-like rebirth scene, a figure emerging from a swirling vortex of crimson and gold flames, fragments of old shell falling away, luminous new spiritual body being forged, intense fire and heat, dramatic chiaroscuro, red-orange-gold color scheme, powerful transformative energy, cinematic, epic dark fantasy xianxia style, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/realms/realm-6-nascent-trans.png`**
+**→ 保存为 `public/images/backgrounds/realms/realm-6-nascent-trans.webp`**
 
 ---
 
@@ -177,7 +177,7 @@ public/images/
 **English prompt:**
 > Seeking Heaven realm, a lone cultivator standing at the peak of the highest mountain, above the clouds, the vast galaxy and starry cosmos swirling overhead, feeling of transcending mortality, deep blue to gold gradient sky, sea of clouds below, the figure is small against the immense cosmos but radiates inner light, ultimate solitude and power, epic climax cinematic, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/realms/realm-7-seeking.png`**
+**→ 保存为 `public/images/backgrounds/realms/realm-7-seeking.webp`**
 
 ---
 
@@ -190,7 +190,7 @@ public/images/
 **English prompt:**
 > Close-up of an ancient Chinese bronze tripod cauldron for alchemy, intricate cloud-thunder patterns and ancient seal script engraved on surface, cyan-green glow leaking from the lid cracks, three legs with beast-face motifs, dark background with dramatic rim lighting on the bronze texture, highly detailed texture, game item icon style, transparent background, 512x512
 
-**→ 保存为 `public/images/decorations/cauldron.png`**
+**→ 保存为 `public/images/decorations/cauldron.webp`**
 
 ---
 
@@ -201,7 +201,7 @@ public/images/
 **English prompt:**
 > Circular golden array formation glowing in the dark, concentric rings of ancient runic characters rotating, yin-yang taiji symbol at the center, intricate geometric patterns, radiant golden light emanating outward, magical circle for breakthrough/ascension, transparent background, game UI element style, 512x512
 
-**→ 保存为 `public/images/decorations/breakthrough-circle.png`**
+**→ 保存为 `public/images/decorations/breakthrough-circle.webp`**
 
 ---
 
@@ -212,7 +212,7 @@ public/images/
 **English prompt:**
 > Glowing pill orb, translucent jade-green to gold gradient, soft luminous halo, floating magical elixir droplet with inner light, sparkle particles, subtle energy swirl, transparent background, game item decoration style, 512x512
 
-**→ 保存为 `public/images/decorations/pill-glow.png`**
+**→ 保存为 `public/images/decorations/pill-glow.webp`**
 
 ---
 
@@ -225,7 +225,7 @@ public/images/
 **English prompt:**
 > Game icon for "Spiritual Energy", a swirling jade-green luminous orb with a bright core, soft glow effect, mist-like tendrils swirling around, transparent background, clean game UI icon style, minimal but magical, 128x128
 
-**→ 保存为 `public/images/icons/lingqi-icon.png`**
+**→ 保存为 `public/images/icons/lingqi-icon.webp`**
 
 ---
 
@@ -236,4 +236,4 @@ public/images/
 **English prompt:**
 > Game icon for "Spirit Stone", a raw translucent crystal ore with angular facets, pale blue-white inner glow, floating with tiny sparkle particles, transparent background, clean game currency icon style, 128x128
 
-**→ 保存为 `public/images/icons/lingshi-icon.png`**
+**→ 保存为 `public/images/icons/lingshi-icon.webp`**

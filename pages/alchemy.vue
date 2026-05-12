@@ -6,7 +6,7 @@
     <div class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 relative">
       <!-- Cauldron decoration -->
       <div class="absolute top-4 right-4 w-24 h-24 opacity-20 pointer-events-none z-0">
-        <img src="/images/decorations/cauldron.png" alt="" class="w-full h-full object-contain" />
+        <img src="/images/decorations/cauldron.webp" alt="" class="w-full h-full object-contain" />
       </div>
 
       <h2 class="font-title text-2xl text-gold-400 mb-6 text-center tracking-wider">丹 房</h2>
@@ -37,7 +37,7 @@
           class="bg-ink-900/70 border border-ink-700 rounded-lg p-5 hover:border-jade-600/50 transition-colors">
           <div class="flex items-start justify-between mb-3">
             <div class="flex items-center gap-2">
-              <img src="/images/decorations/pill-glow.png" alt="" class="w-6 h-6 opacity-60" />
+              <img src="/images/decorations/pill-glow.webp" alt="" class="w-6 h-6 opacity-60" />
               <div>
                 <h3 class="font-bold text-gold-300">{{ recipe.name }}</h3>
                 <span class="text-xs text-ink-400">{{ recipe.realm }}</span>
