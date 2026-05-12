@@ -13,6 +13,7 @@ export function useDB() {
     const pool = new Pool({
       connectionString: config.dbConnectionString,
     })
+    pool.on('error', () => { db = null })
     db = drizzle(pool)
   }
   return db

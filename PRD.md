@@ -200,6 +200,40 @@
 - 聊天系统
 - E2E 测试 CI 自动化集成
 
+## Vercel 部署方案
+
+### 数据库
+- 使用 **Neon** Serverless PostgreSQL
+- 免费套餐：0.5GB 存储 + 100 计算时/月
+- 连接字符串设为 Vercel 环境变量 `DB_CONNECTION_STRING`
+- 构建时自动执行 `drizzle-kit push` 同步 schema
+
+### 代码适配（6 项改动）
+
+| # | 改动 | 说明 |
+|:-:|------|------|
+| 1 | Neon 数据库搭建 | 注册 Neon 账号，创建项目，获取连接串 |
+| 2 | bcrypt → bcryptjs | 替换原生模块为纯 JS 实现，消除 Vercel 编译依赖 |
+| 3 | 图片转 WebP | 17 张 PNG → WebP，预期 44MB → ~10MB，保留在 `public/` |
+| 4 | Nitro preset | `nuxt.config.ts` 添加 `nitro: { preset: 'vercel' }` |
+| 5 | 构建配置 | `package.json` scripts + `vercel.json` + 自动迁移脚本 |
+| 6 | 环境变量 + 部署 | Vercel 配置 `JWT_SECRET`、`DB_CONNECTION_STRING`，关联 GitHub 仓库 |
+
+### 架构变化
+
+- **前/后端**：由 Nuxt Nitro 统一部署为 Vercel Serverless Functions
+- **数据库**：从本地 PostgreSQL 迁移到 Neon 云端
+- **图片**：本地 PNG → 压缩 WebP，部署时排除原始 PNG 大文件
+- **构建**：`nuxt build` → Nitro vercel preset，生成 `.vercel/output/`
+- **迁移**：`postinstall` 脚本自动执行 `drizzle-kit push`
+
+### 无需改动
+
+- 代码业务逻辑无变化
+- API 路由、页面路由不变
+- 用户认证方式不变（JWT）
+- 测试代码不需要修改
+
 ## Further Notes
 
 - 图片资源由 AI 工具生成，存储在 `public/images/`，共 17 张 PNG
