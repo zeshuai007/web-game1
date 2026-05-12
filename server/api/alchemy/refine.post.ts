@@ -1,16 +1,5 @@
 import { eq, and } from 'drizzle-orm'
-import { characters, inventory, alchemyRecords, pillTypeEnum } from '../../db/schema'
-import { alchemyRecipes } from '../../utils/game-engine'
-
-function getRecipeCosts(pillType: string) {
-  const recipe = alchemyRecipes.find(r => r.id === pillType)
-  if (!recipe) return null
-  const materials: Record<string, number> = {}
-  for (const m of recipe.materials) {
-    materials[m.id] = m.quantity
-  }
-  return { materials, cost: recipe.cost }
-}
+import { characters, inventory, alchemyRecords, pillTypeEnum, configAlchemyRecipes } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -22,20 +11,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '无效的丹药类型' })
   }
 
-  const recipe = getRecipeCosts(pillType)
+  const [recipe] = await db.select().from(configAlchemyRecipes).where(eq(configAlchemyRecipes.pillId, pillType)).limit(1)
   if (!recipe) throw createError({ statusCode: 400, message: '未知的丹方' })
 
+  const materials: Record<string, number> = {}
+  let cost = recipe.cost
+  const parsed = JSON.parse(recipe.materialsJson) as { id: string; quantity: number }[]
+  for (const m of parsed) materials[m.id] = m.quantity
+
   const char = await useCharacter(event)
+  if (parseFloat(char.lingshi) < cost) throw createError({ statusCode: 400, message: '灵石不足' })
 
-  if (parseFloat(char.lingshi) < recipe.cost) {
-    throw createError({ statusCode: 400, message: '灵石不足' })
-  }
+  await db.update(characters).set({ lingshi: String(parseFloat(char.lingshi) - cost) }).where(eq(characters.id, char.id))
 
-  await db.update(characters).set({ lingshi: String(parseFloat(char.lingshi) - recipe.cost) }).where(eq(characters.id, char.id))
-
-  for (const [materialId, qty] of Object.entries(recipe.materials)) {
-    const [inv] = await db.select()
-      .from(inventory)
+  for (const [materialId, qty] of Object.entries(materials)) {
+    const [inv] = await db.select().from(inventory)
       .where(and(eq(inventory.characterId, char.id), eq(inventory.itemId, materialId)))
     if (!inv || inv.quantity < qty) {
       await db.update(characters).set({ lingshi: String(parseFloat(char.lingshi)) }).where(eq(characters.id, char.id))
