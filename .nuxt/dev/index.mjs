@@ -2401,6 +2401,15 @@ const pillTypeEnum = [
   "wending_dan"
   // 问鼎丹 - 婴变→问鼎突破
 ];
+const adventureEvents$1 = pgTable("adventure_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  characterId: uuid("character_id").notNull().references(() => characters.id, { onDelete: "cascade" }),
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  eventData: varchar("event_data", { length: 1e3 }).notNull().default("{}"),
+  state: varchar("state", { length: 20 }).notNull().default("pending"),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+});
 const signInRecords = pgTable("sign_in_records", {
   id: uuid("id").primaryKey().defaultRandom(),
   characterId: uuid("character_id").notNull().references(() => characters.id, { onDelete: "cascade" }),
@@ -2823,10 +2832,14 @@ async function getIslandContext(event) {
 	};
 }
 
+const _lazy_7Y1Z2L = () => Promise.resolve().then(function () { return clear_post$1; });
+const _lazy_UE7xIF = () => Promise.resolve().then(function () { return pending_get$1; });
+const _lazy_edHT1W = () => Promise.resolve().then(function () { return resolve_post$1; });
 const _lazy_QaLESx = () => Promise.resolve().then(function () { return list_get$1; });
 const _lazy_khuJuD = () => Promise.resolve().then(function () { return refine_post$1; });
 const _lazy_uqd1Hl = () => Promise.resolve().then(function () { return login_post$1; });
 const _lazy_ld3fyR = () => Promise.resolve().then(function () { return me_get$1; });
+const _lazy_CD3gcB = () => Promise.resolve().then(function () { return profile_put$1; });
 const _lazy_UzJArf = () => Promise.resolve().then(function () { return register_post$1; });
 const _lazy_RucHCl = () => Promise.resolve().then(function () { return breakthrough_post$1; });
 const _lazy_c4w1oX = () => Promise.resolve().then(function () { return progress_get$1; });
@@ -2842,10 +2855,14 @@ const _lazy_O1KNi3 = () => Promise.resolve().then(function () { return renderer;
 const handlers = [
   { route: '', handler: _gOspPi, lazy: false, middleware: true, method: undefined },
   { route: '', handler: _Qdx7uz, lazy: false, middleware: true, method: undefined },
+  { route: '/api/adventure/clear', handler: _lazy_7Y1Z2L, lazy: true, middleware: false, method: "post" },
+  { route: '/api/adventure/pending', handler: _lazy_UE7xIF, lazy: true, middleware: false, method: "get" },
+  { route: '/api/adventure/resolve', handler: _lazy_edHT1W, lazy: true, middleware: false, method: "post" },
   { route: '/api/alchemy/list', handler: _lazy_QaLESx, lazy: true, middleware: false, method: "get" },
   { route: '/api/alchemy/refine', handler: _lazy_khuJuD, lazy: true, middleware: false, method: "post" },
   { route: '/api/auth/login', handler: _lazy_uqd1Hl, lazy: true, middleware: false, method: "post" },
   { route: '/api/auth/me', handler: _lazy_ld3fyR, lazy: true, middleware: false, method: "get" },
+  { route: '/api/auth/profile', handler: _lazy_CD3gcB, lazy: true, middleware: false, method: "put" },
   { route: '/api/auth/register', handler: _lazy_UzJArf, lazy: true, middleware: false, method: "post" },
   { route: '/api/cultivate/breakthrough', handler: _lazy_RucHCl, lazy: true, middleware: false, method: "post" },
   { route: '/api/cultivate/progress', handler: _lazy_c4w1oX, lazy: true, middleware: false, method: "get" },
@@ -3210,6 +3227,251 @@ const styles$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   default: styles
 }, Symbol.toStringTag, { value: 'Module' }));
 
+const clear_post = defineEventHandler(async (event) => {
+  const userId = event.context.userId;
+  const db = useDB();
+  const [char] = await db.select().from(characters).where(eq(characters.userId, userId));
+  if (!char) throw createError({ statusCode: 404, message: "\u89D2\u8272\u4E0D\u5B58\u5728" });
+  await db.update(adventureEvents$1).set({ state: "expired" }).where(and(eq(adventureEvents$1.characterId, char.id), eq(adventureEvents$1.state, "pending")));
+  return { success: true };
+});
+
+const clear_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: clear_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const realmConfigs = {
+  condensing_qi: { label: "\u51DD\u6C14\u671F", lingqiCap: 1e3, lingshiRate: 10, lingqiRate: 10 },
+  foundation: { label: "\u7B51\u57FA\u671F", lingqiCap: 5e3, lingshiRate: 30, lingqiRate: 30 },
+  core_formation: { label: "\u7ED3\u4E39\u671F", lingqiCap: 2e4, lingshiRate: 80, lingqiRate: 80 },
+  nascent_soul: { label: "\u5143\u5A74\u671F", lingqiCap: 8e4, lingshiRate: 200, lingqiRate: 200 },
+  deity_transformation: { label: "\u5316\u795E\u671F", lingqiCap: 3e5, lingshiRate: 500, lingqiRate: 500 },
+  nascent_transformation: { label: "\u5A74\u53D8\u671F", lingqiCap: 1e6, lingshiRate: 1200, lingqiRate: 1200 },
+  seeking_heaven: { label: "\u95EE\u9F0E\u671F", lingqiCap: 5e6, lingshiRate: 3e3, lingqiRate: 3e3 }
+};
+const breakthroughBaseChance = {
+  "condensing_qi\u2192foundation": 0.5,
+  "foundation\u2192core_formation": 0.4,
+  "core_formation\u2192nascent_soul": 0.3,
+  "nascent_soul\u2192deity_transformation": 0.25,
+  "deity_transformation\u2192nascent_transformation": 0.2,
+  "nascent_transformation\u2192seeking_heaven": 0.15
+};
+function getMaxLayer(realm) {
+  return realm === "condensing_qi" ? 9 : 3;
+}
+function getNextRealm(current) {
+  const idx = realmEnum.indexOf(current);
+  if (idx >= realmEnum.length - 1) return null;
+  return realmEnum[idx + 1];
+}
+function isMaxLayer(realm, layer) {
+  return layer >= getMaxLayer(realm);
+}
+function getRealmBoundaryKey(current) {
+  const next = getNextRealm(current);
+  if (!next) return "";
+  return `${current}\u2192${next}`;
+}
+function calcOfflineEarnings(char, elapsedMinutes) {
+  const cap = 24 * 60;
+  const effectiveMinutes = Math.min(elapsedMinutes, cap);
+  const cfg = realmConfigs[char.realm];
+  const pillMultiplier = 1;
+  const lingqiGain = cfg.lingqiRate * effectiveMinutes * pillMultiplier;
+  const lingshiGain = cfg.lingshiRate * effectiveMinutes * pillMultiplier;
+  return { lingqiGain, lingshiGain, effectiveMinutes };
+}
+function breakthroughRoll(realm, hasBreakthroughPill) {
+  var _a;
+  const key = getRealmBoundaryKey(realm);
+  const base = (_a = breakthroughBaseChance[key]) != null ? _a : 0.15;
+  const chance = hasBreakthroughPill ? Math.min(base + 0.2, 0.9) : base;
+  return Math.random() < chance;
+}
+const pillNames = {
+  peiyuan_dan: "\u57F9\u5143\u4E39",
+  qihuang_dan: "\u5C90\u9EC4\u4E39",
+  qianji_dan: "\u5343\u673A\u4E39",
+  taiyi_dan: "\u592A\u4E59\u4E39",
+  tianyun_dan: "\u5929\u97F5\u4E39",
+  xuanyuan_dan: "\u7384\u5143\u4E39",
+  wendao_dan: "\u95EE\u9053\u4E39",
+  zhuji_dan: "\u7B51\u57FA\u4E39",
+  tianli_dan: "\u5929\u79BB\u4E39",
+  qingyun_dan: "\u9752\u4E91\u4E39",
+  huashen_dan: "\u5316\u795E\u4E39",
+  yingbian_dan: "\u5A74\u53D8\u4E39",
+  wending_dan: "\u95EE\u9F0E\u4E39"
+};
+const adventureEvents = [
+  {
+    type: "spirit_herb",
+    title: "\u7075\u8349\u73B0\u4E16",
+    description: "\u4F60\u5728\u4FEE\u70BC\u4E2D\u611F\u5E94\u5230\u9644\u8FD1\u6709\u73CD\u8D35\u7075\u8349\u7684\u6C14\u606F\uFF0C\u6216\u8BB8\u80FD\u627E\u5230\u4E00\u4E9B\u70BC\u4E39\u6750\u6599\u3002",
+    choices: [
+      { label: "\u4ED4\u7EC6\u641C\u7D22", desc: "\u82B1\u8D39\u4E00\u4E9B\u65F6\u95F4\u5BFB\u627E\u7075\u8349" },
+      { label: "\u7C97\u7565\u91C7\u96C6", desc: "\u5FEB\u901F\u91C7\u96C6\u540E\u7EE7\u7EED\u4FEE\u70BC" }
+    ],
+    rewards: [
+      { type: "material_youhun_cao", value: 3 },
+      { type: "material_ningxue_hua", value: 2 }
+    ],
+    baseChance: 0.3
+  },
+  {
+    type: "beast_attack",
+    title: "\u5996\u517D\u88AD\u51FB",
+    description: "\u4E00\u5934\u5996\u517D\u95EF\u5165\u4F60\u7684\u4FEE\u70BC\u4E4B\u5730\uFF01\u4F60\u9700\u8981\u6D88\u8017\u7075\u6C14\u6765\u51FB\u9000\u5B83\u3002",
+    choices: [
+      { label: "\u6B63\u9762\u8FCE\u6218", desc: "\u6D88\u8017 50 \u7075\u6C14\u51FB\u9000\u5996\u517D\uFF0C\u83B7\u5F97\u7075\u77F3" },
+      { label: "\u907F\u5176\u950B\u8292", desc: "\u907F\u5F00\u6218\u6597\uFF0C\u4FDD\u5168\u7075\u6C14" }
+    ],
+    rewards: [
+      { type: "lingshi", value: 50 }
+    ],
+    baseChance: 0.25
+  },
+  {
+    type: "mysterious_cave",
+    title: "\u795E\u79D8\u6D1E\u5E9C",
+    description: "\u4F60\u53D1\u73B0\u4E00\u5904\u9690\u85CF\u7684\u6D1E\u5E9C\uFF0C\u4F3C\u4E4E\u662F\u4E00\u4F4D\u524D\u8F88\u9AD8\u4EBA\u7684\u5750\u5316\u4E4B\u5730\u3002\u4F46\u9700\u8981\u6D88\u8017\u7075\u77F3\u624D\u80FD\u6253\u5F00\u7981\u5236\u3002",
+    choices: [
+      { label: "\u63A2\u7D22\u6D1E\u5E9C", desc: "\u6D88\u8017 100 \u7075\u77F3\u63A2\u7D22\uFF0C\u53EF\u80FD\u83B7\u5F97\u5927\u91CF\u673A\u7F18" },
+      { label: "\u4FDD\u5B58\u5B9E\u529B", desc: "\u8BB0\u4E0B\u4F4D\u7F6E\uFF0C\u65E5\u540E\u518D\u8BF4" }
+    ],
+    rewards: [
+      { type: "lingshi", value: 300 }
+    ],
+    baseChance: 0.15
+  },
+  {
+    type: "heavenly_blessing",
+    title: "\u5929\u964D\u673A\u7F18",
+    description: "\u4E00\u9053\u7075\u5149\u4ECE\u5929\u800C\u964D\uFF0C\u76F4\u76F4\u6CA1\u5165\u4F60\u7684\u5929\u7075\u76D6\uFF01\u4F60\u611F\u89C9\u4F53\u5185\u7075\u6C14\u66B4\u6DA8\uFF01",
+    choices: [
+      { label: "\u5168\u529B\u5438\u6536", desc: "\u5438\u6536\u5168\u90E8\u7075\u6C14" }
+    ],
+    rewards: [
+      { type: "lingqi", value: 200 }
+    ],
+    baseChance: 0.2
+  },
+  {
+    type: "heart_demon",
+    title: "\u5FC3\u9B54\u8BD5\u70BC",
+    description: "\u4FEE\u70BC\u5230\u5173\u952E\u5904\uFF0C\u5FC3\u9B54\u6084\u7136\u6765\u88AD\u3002\u82E5\u80FD\u514B\u670D\uFF0C\u7A81\u7834\u65F6\u5C06\u83B7\u5F97\u88E8\u76CA\u3002",
+    choices: [
+      { label: "\u76F4\u9762\u5FC3\u9B54", desc: "\u514B\u670D\u5FC3\u9B54\uFF0C\u4E0B\u6B21\u7A81\u7834\u6982\u7387\u63D0\u5347" },
+      { label: "\u56FA\u5B88\u672C\u5FC3", desc: "\u7A33\u624E\u7A33\u6253\uFF0C\u5DE9\u56FA\u4FEE\u4E3A" }
+    ],
+    rewards: [
+      { type: "breakthrough_bonus", value: 0.1 }
+    ],
+    baseChance: 0.1
+  }
+];
+function rollAdventureEvent(realm) {
+  const realmMultiplier = 1 + realmEnum.indexOf(realm) * 0.2;
+  for (const event of adventureEvents) {
+    const chance = event.baseChance * realmMultiplier;
+    if (Math.random() < chance) {
+      return event;
+    }
+  }
+  return null;
+}
+const materialNames = {
+  youhun_cao: "\u5E7D\u9B42\u8349",
+  ningxue_hua: "\u51DD\u8840\u82B1",
+  hansui_ye: "\u5BD2\u9AD3\u53F6",
+  longxian_guo: "\u9F99\u6D8E\u679C",
+  wannian_lingzhi: "\u4E07\u5E74\u7075\u829D",
+  qicai_xuelian: "\u4E03\u5F69\u96EA\u83B2"
+};
+
+const pending_get = defineEventHandler(async (event) => {
+  const userId = event.context.userId;
+  const db = useDB();
+  const [char] = await db.select().from(characters).where(eq(characters.userId, userId));
+  if (!char) throw createError({ statusCode: 404, message: "\u89D2\u8272\u4E0D\u5B58\u5728" });
+  const [pending] = await db.select().from(adventureEvents$1).where(and(
+    eq(adventureEvents$1.characterId, char.id),
+    eq(adventureEvents$1.state, "pending")
+  )).limit(1);
+  if (pending) {
+    return { event: { id: pending.id, type: pending.eventType, data: JSON.parse(pending.eventData), state: pending.state } };
+  }
+  const triggered = rollAdventureEvent(char.realm);
+  if (!triggered) {
+    return { event: null };
+  }
+  const choices = triggered.choices.map((c, i) => ({ index: i, label: c.label, desc: c.desc }));
+  const [record] = await db.insert(adventureEvents$1).values({
+    characterId: char.id,
+    eventType: triggered.type,
+    eventData: JSON.stringify({ title: triggered.title, description: triggered.description, choices }),
+    state: "pending"
+  }).returning();
+  return { event: { id: record.id, type: triggered.type, data: { title: triggered.title, description: triggered.description, choices }, state: "pending" } };
+});
+
+const pending_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: pending_get
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const resolve_post = defineEventHandler(async (event) => {
+  const userId = event.context.userId;
+  const body = await readBody(event);
+  const { choice } = body || {};
+  const db = useDB();
+  const [char] = await db.select().from(characters).where(eq(characters.userId, userId));
+  if (!char) throw createError({ statusCode: 404, message: "\u89D2\u8272\u4E0D\u5B58\u5728" });
+  const [pending] = await db.select().from(adventureEvents$1).where(and(
+    eq(adventureEvents$1.characterId, char.id),
+    eq(adventureEvents$1.state, "pending")
+  )).limit(1);
+  if (!pending) {
+    throw createError({ statusCode: 400, message: "\u6CA1\u6709\u5F85\u5904\u7406\u7684\u5947\u9047\u4E8B\u4EF6" });
+  }
+  const eventDef = adventureEvents.find((e) => e.type === pending.eventType);
+  if (!eventDef) {
+    throw createError({ statusCode: 400, message: "\u672A\u77E5\u7684\u4E8B\u4EF6\u7C7B\u578B" });
+  }
+  const chosenIndex = choice != null ? choice : 0;
+  const chosenReward = eventDef.rewards[Math.min(chosenIndex, eventDef.rewards.length - 1)];
+  let rewardMsg = "";
+  if (chosenReward.type === "lingshi") {
+    const newLingshi = parseFloat(char.lingshi) + chosenReward.value;
+    await db.update(characters).set({ lingshi: String(newLingshi), updatedAt: /* @__PURE__ */ new Date() }).where(eq(characters.id, char.id));
+    rewardMsg = `\u83B7\u5F97 ${chosenReward.value} \u7075\u77F3`;
+  } else if (chosenReward.type === "lingqi") {
+    const newLingqi = Math.min(parseFloat(char.lingqi) + chosenReward.value, parseFloat(char.lingqiCap));
+    await db.update(characters).set({ lingqi: String(newLingqi), updatedAt: /* @__PURE__ */ new Date() }).where(eq(characters.id, char.id));
+    rewardMsg = `\u83B7\u5F97 ${chosenReward.value} \u7075\u6C14`;
+  } else if (chosenReward.type === "breakthrough_bonus") {
+    rewardMsg = "\u4E0B\u6B21\u7A81\u7834\u6982\u7387\u7565\u5FAE\u63D0\u5347\uFF08\u5FC3\u9B54\u8BD5\u70BC\u7684\u611F\u609F\uFF09";
+  } else if (chosenReward.type.startsWith("material_")) {
+    const materialId = chosenReward.type.replace("material_", "");
+    const [existing] = await db.select().from(inventory).where(and(eq(inventory.characterId, char.id), eq(inventory.itemId, materialId))).limit(1);
+    if (existing) {
+      await db.update(inventory).set({ quantity: existing.quantity + chosenReward.value }).where(eq(inventory.id, existing.id));
+    } else {
+      await db.insert(inventory).values({ characterId: char.id, itemType: "material", itemId: materialId, quantity: chosenReward.value });
+    }
+    rewardMsg = `\u83B7\u5F97 ${materialNames[materialId] || materialId} \xD7${chosenReward.value}`;
+  }
+  await db.update(adventureEvents$1).set({ state: "resolved", resolvedAt: /* @__PURE__ */ new Date() }).where(eq(adventureEvents$1.id, pending.id));
+  return { success: true, message: rewardMsg, choice: chosenIndex };
+});
+
+const resolve_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: resolve_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
 const list_get = defineEventHandler(async (event) => {
   const userId = event.context.userId;
   const db = useDB();
@@ -3359,78 +3621,25 @@ const me_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   default: me_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
-const realmConfigs = {
-  condensing_qi: { label: "\u51DD\u6C14\u671F", lingqiCap: 1e3, lingshiRate: 10, lingqiRate: 10 },
-  foundation: { label: "\u7B51\u57FA\u671F", lingqiCap: 5e3, lingshiRate: 30, lingqiRate: 30 },
-  core_formation: { label: "\u7ED3\u4E39\u671F", lingqiCap: 2e4, lingshiRate: 80, lingqiRate: 80 },
-  nascent_soul: { label: "\u5143\u5A74\u671F", lingqiCap: 8e4, lingshiRate: 200, lingqiRate: 200 },
-  deity_transformation: { label: "\u5316\u795E\u671F", lingqiCap: 3e5, lingshiRate: 500, lingqiRate: 500 },
-  nascent_transformation: { label: "\u5A74\u53D8\u671F", lingqiCap: 1e6, lingshiRate: 1200, lingqiRate: 1200 },
-  seeking_heaven: { label: "\u95EE\u9F0E\u671F", lingqiCap: 5e6, lingshiRate: 3e3, lingqiRate: 3e3 }
-};
-const breakthroughBaseChance = {
-  "condensing_qi\u2192foundation": 0.5,
-  "foundation\u2192core_formation": 0.4,
-  "core_formation\u2192nascent_soul": 0.3,
-  "nascent_soul\u2192deity_transformation": 0.25,
-  "deity_transformation\u2192nascent_transformation": 0.2,
-  "nascent_transformation\u2192seeking_heaven": 0.15
-};
-function getMaxLayer(realm) {
-  return realm === "condensing_qi" ? 9 : 3;
-}
-function getNextRealm(current) {
-  const idx = realmEnum.indexOf(current);
-  if (idx >= realmEnum.length - 1) return null;
-  return realmEnum[idx + 1];
-}
-function isMaxLayer(realm, layer) {
-  return layer >= getMaxLayer(realm);
-}
-function getRealmBoundaryKey(current) {
-  const next = getNextRealm(current);
-  if (!next) return "";
-  return `${current}\u2192${next}`;
-}
-function calcOfflineEarnings(char, elapsedMinutes) {
-  const cap = 24 * 60;
-  const effectiveMinutes = Math.min(elapsedMinutes, cap);
-  const cfg = realmConfigs[char.realm];
-  const pillMultiplier = 1;
-  const lingqiGain = cfg.lingqiRate * effectiveMinutes * pillMultiplier;
-  const lingshiGain = cfg.lingshiRate * effectiveMinutes * pillMultiplier;
-  return { lingqiGain, lingshiGain, effectiveMinutes };
-}
-function breakthroughRoll(realm, hasBreakthroughPill) {
-  var _a;
-  const key = getRealmBoundaryKey(realm);
-  const base = (_a = breakthroughBaseChance[key]) != null ? _a : 0.15;
-  const chance = hasBreakthroughPill ? Math.min(base + 0.2, 0.9) : base;
-  return Math.random() < chance;
-}
-const pillNames = {
-  peiyuan_dan: "\u57F9\u5143\u4E39",
-  qihuang_dan: "\u5C90\u9EC4\u4E39",
-  qianji_dan: "\u5343\u673A\u4E39",
-  taiyi_dan: "\u592A\u4E59\u4E39",
-  tianyun_dan: "\u5929\u97F5\u4E39",
-  xuanyuan_dan: "\u7384\u5143\u4E39",
-  wendao_dan: "\u95EE\u9053\u4E39",
-  zhuji_dan: "\u7B51\u57FA\u4E39",
-  tianli_dan: "\u5929\u79BB\u4E39",
-  qingyun_dan: "\u9752\u4E91\u4E39",
-  huashen_dan: "\u5316\u795E\u4E39",
-  yingbian_dan: "\u5A74\u53D8\u4E39",
-  wending_dan: "\u95EE\u9F0E\u4E39"
-};
-const materialNames = {
-  youhun_cao: "\u5E7D\u9B42\u8349",
-  ningxue_hua: "\u51DD\u8840\u82B1",
-  hansui_ye: "\u5BD2\u9AD3\u53F6",
-  longxian_guo: "\u9F99\u6D8E\u679C",
-  wannian_lingzhi: "\u4E07\u5E74\u7075\u829D",
-  qicai_xuelian: "\u4E03\u5F69\u96EA\u83B2"
-};
+const profile_put = defineEventHandler(async (event) => {
+  const userId = event.context.userId;
+  const body = await readBody(event);
+  const { nickname } = body || {};
+  if (!nickname || !nickname.trim()) {
+    throw createError({ statusCode: 400, message: "\u9053\u53F7\u4E0D\u80FD\u4E3A\u7A7A" });
+  }
+  if (nickname.length > 20) {
+    throw createError({ statusCode: 400, message: "\u9053\u53F7\u4E0D\u80FD\u8D85\u8FC720\u4E2A\u5B57\u7B26" });
+  }
+  const db = useDB();
+  const [updated] = await db.update(characters).set({ nickname: nickname.trim(), updatedAt: /* @__PURE__ */ new Date() }).where(eq(characters.userId, userId)).returning();
+  return { character: updated };
+});
+
+const profile_put$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: profile_put
+}, Symbol.toStringTag, { value: 'Module' }));
 
 const register_post = defineEventHandler(async (event) => {
   const body = await readBody(event);

@@ -3,6 +3,7 @@ declare global {
   const H3Event: typeof import('../../node_modules/h3').H3Event
   const __buildAssetsURL: typeof import('../../node_modules/@nuxt/nitro-server/dist/runtime/utils/paths').buildAssetsURL
   const __publicAssetsURL: typeof import('../../node_modules/@nuxt/nitro-server/dist/runtime/utils/paths').publicAssetsURL
+  const adventureEvents: typeof import('../../server/utils/game-engine').adventureEvents
   const appendCorsHeaders: typeof import('../../node_modules/h3').appendCorsHeaders
   const appendCorsPreflightHeaders: typeof import('../../node_modules/h3').appendCorsPreflightHeaders
   const appendHeader: typeof import('../../node_modules/h3').appendHeader
@@ -102,6 +103,7 @@ declare global {
   const readValidatedBody: typeof import('../../node_modules/h3').readValidatedBody
   const realmConfigs: typeof import('../../server/utils/game-engine').realmConfigs
   const removeResponseHeader: typeof import('../../node_modules/h3').removeResponseHeader
+  const rollAdventureEvent: typeof import('../../server/utils/game-engine').rollAdventureEvent
   const runTask: typeof import('../../node_modules/nitropack/dist/runtime/internal/task').runTask
   const sanitizeStatusCode: typeof import('../../node_modules/h3').sanitizeStatusCode
   const sanitizeStatusMessage: typeof import('../../node_modules/h3').sanitizeStatusMessage
@@ -147,7 +149,7 @@ declare global {
   export type { EventHandler, EventHandlerRequest, EventHandlerResponse, EventHandlerObject, H3EventContext } from '../../node_modules/h3'
   import('../../node_modules/h3')
   // @ts-ignore
-  export type { RealmConfig } from '../../server/utils/game-engine'
+  export type { RealmConfig, AdventureEvent } from '../../server/utils/game-engine'
   import('../../server/utils/game-engine')
 }
 export { H3Event, H3Error, appendCorsHeaders, appendCorsPreflightHeaders, appendHeader, appendHeaders, appendResponseHeader, appendResponseHeaders, assertMethod, callNodeListener, clearResponseHeaders, clearSession, createApp, createAppEventHandler, createError, createEvent, createEventStream, createRouter, defaultContentType, defineEventHandler, defineLazyEventHandler, defineNodeListener, defineNodeMiddleware, defineRequestMiddleware, defineResponseMiddleware, defineWebSocket, defineWebSocketHandler, deleteCookie, dynamicEventHandler, eventHandler, fetchWithEvent, fromNodeMiddleware, fromPlainHandler, fromWebHandler, getCookie, getHeader, getHeaders, getMethod, getProxyRequestHeaders, getQuery, getRequestFingerprint, getRequestHeader, getRequestHeaders, getRequestHost, getRequestIP, getRequestPath, getRequestProtocol, getRequestURL, getRequestWebStream, getResponseHeader, getResponseHeaders, getResponseStatus, getResponseStatusText, getRouterParam, getRouterParams, getSession, getValidatedQuery, getValidatedRouterParams, handleCacheHeaders, handleCors, isCorsOriginAllowed, isError, isEvent, isEventHandler, isMethod, isPreflightRequest, isStream, isWebResponse, lazyEventHandler, parseCookies, promisifyNodeListener, proxyRequest, readBody, readFormData, readMultipartFormData, readRawBody, readValidatedBody, removeResponseHeader, sanitizeStatusCode, sanitizeStatusMessage, sealSession, send, sendError, sendIterable, sendNoContent, sendProxy, sendRedirect, sendStream, sendWebResponse, serveStatic, setCookie, setHeader, setHeaders, setResponseHeader, setResponseHeaders, setResponseStatus, splitCookiesString, toEventHandler, toNodeListener, toPlainHandler, toWebHandler, toWebRequest, unsealSession, updateSession, useBase, useSession, writeEarlyHints } from 'h3';
@@ -165,5 +167,5 @@ export { defineNitroErrorHandler } from 'nitropack/runtime/internal/error/utils'
 export { buildAssetsURL as __buildAssetsURL, publicAssetsURL as __publicAssetsURL } from '/home/zeshuai007/claude/webgames/xianni-game/node_modules/@nuxt/nitro-server/dist/runtime/utils/paths';
 export { defineAppConfig } from '/home/zeshuai007/claude/webgames/xianni-game/node_modules/@nuxt/nitro-server/dist/runtime/utils/config';
 export { useDB } from '/home/zeshuai007/claude/webgames/xianni-game/server/utils/db';
-export { realmConfigs, breakthroughBaseChance, getMaxLayer, getNextRealm, isMaxLayer, calcOfflineEarnings, breakthroughRoll, getPillCultivationBonus, getPillBreakthroughBonus, pillNames, materialNames } from '/home/zeshuai007/claude/webgames/xianni-game/server/utils/game-engine';
+export { realmConfigs, breakthroughBaseChance, getMaxLayer, getNextRealm, isMaxLayer, calcOfflineEarnings, breakthroughRoll, getPillCultivationBonus, getPillBreakthroughBonus, pillNames, adventureEvents, rollAdventureEvent, materialNames } from '/home/zeshuai007/claude/webgames/xianni-game/server/utils/game-engine';
 export { signToken, verifyToken } from '/home/zeshuai007/claude/webgames/xianni-game/server/utils/jwt';

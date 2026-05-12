@@ -124,10 +124,10 @@
           <h3 class="font-title text-xl text-gold-400 mb-2 text-center">{{ adventureEvent.data.title }}</h3>
           <p class="text-ink-300 text-sm mb-4 text-center">{{ adventureEvent.data.description }}</p>
           <div v-if="!adventureResult" class="space-y-2">
-            <button v-for="choice in adventureEvent.data.choices" :key="choice.index" @click="handleAdventureChoice(choice.index)"
+            <button v-for="c in adventureEvent.data.choices" :key="c.index" @click="handleAdventureChoice(c.index)"
               class="w-full py-2.5 px-4 bg-ink-800 hover:bg-ink-700 border border-ink-600 rounded text-sm text-ink-200 text-left transition-colors">
-              <span class="text-gold-400 font-bold">{{ choice.label }}</span>
-              <span class="text-ink-400 block text-xs mt-0.5">{{ choice.desc }}</span>
+              <span class="text-gold-400 font-bold">{{ c.label }}</span>
+              <span class="text-ink-400 block text-xs mt-0.5">{{ c.desc }}</span>
             </button>
           </div>
           <div v-else class="text-center">
@@ -246,7 +246,7 @@ async function checkAdventure() {
   } catch { /* ignore */ }
 }
 
-async function handleAdventureChoice(choice) {
+async function handleAdventureChoice(choice: number) {
   try {
     const res = await $fetch('/api/adventure/resolve', {
       method: 'POST',

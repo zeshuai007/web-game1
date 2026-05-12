@@ -241,6 +241,146 @@ describe('Rankings API', () => {
   })
 })
 
+describe('Profile API', () => {
+  let token = ''
+  const testEmail = `prof_${Date.now()}@vitest.com`
+
+  beforeAll(async () => {
+    const res = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: testEmail, password: 'test123456', nickname: '原道号' }),
+    })
+    const body = await res.json()
+    token = body.token
+  })
+
+  it('PUT /api/auth/profile - updates nickname', async () => {
+    const res = await fetch(`${BASE}/api/auth/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ nickname: '新道号' }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.character.nickname).toBe('新道号')
+  })
+
+  it('PUT /api/auth/profile - rejects empty nickname', async () => {
+    const res = await fetch(`${BASE}/api/auth/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ nickname: '' }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('PUT /api/auth/profile - rejects too long nickname', async () => {
+    const res = await fetch(`${BASE}/api/auth/profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ nickname: 'a'.repeat(21) }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('GET /api/auth/me - returns updated nickname', async () => {
+    const res = await fetch(`${BASE}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.character.nickname).toBe('新道号')
+  })
+})
+
+describe('Adventure API', () => {
+  let token = ''
+  let characterId = ''
+  const testEmail = `adv_${Date.now()}@vitest.com`
+
+  beforeAll(async () => {
+    const res = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: testEmail, password: 'test123456' }),
+    })
+    const body = await res.json()
+    token = body.token
+    const me = await fetch(`${BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+    const meBody = await me.json()
+    characterId = meBody.character.id
+  })
+
+  it('GET /api/adventure/pending - returns null when no events', async () => {
+    const res = await fetch(`${BASE}/api/adventure/pending`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    // May or may not have a pending event due to random trigger
+    expect(body).toHaveProperty('event')
+  })
+
+  it('POST /api/adventure/clear - succeeds', async () => {
+    const res = await fetch(`${BASE}/api/adventure/clear`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+  })
+
+  it('POST /api/adventure/resolve - fails with no pending event', async () => {
+    await fetch(`${BASE}/api/adventure/clear`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const res = await fetch(`${BASE}/api/adventure/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ choice: 0 }),
+    })
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.message).toContain('没有待处理')
+  })
+
+  it('full cycle: trigger pending + resolve gives reward', async () => {
+    // Clear, then call pending repeatedly until an event triggers
+    await fetch(`${BASE}/api/adventure/clear`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+
+    let eventId = ''
+    for (let i = 0; i < 50; i++) {
+      const res = await fetch(`${BASE}/api/adventure/pending`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const body = await res.json()
+      if (body.event) {
+        eventId = body.event.id
+        // Event was triggered! If it was auto-resolved, try pending again
+        const body2 = await (await fetch(`${BASE}/api/adventure/pending`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })).json()
+        if (body2.event) break
+      }
+    }
+    expect(eventId).toBeTruthy() // An event should have been triggered
+
+    const resolveRes = await fetch(`${BASE}/api/adventure/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ choice: 0 }),
+    })
+    expect(resolveRes.status).toBe(200)
+    const resolveBody = await resolveRes.json()
+    expect(resolveBody.success).toBe(true)
+    expect(resolveBody.message).toBeTruthy()
+  })
+})
+
 describe('Sign-in API', () => {
   let token = ''
   const testEmail = `sign_${Date.now()}@vitest.com`
