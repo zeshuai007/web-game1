@@ -293,14 +293,14 @@ onMounted(async () => {
 })
 
 // Game config from API
-const gameConfig = ref<any>(null)
+const gameConfig = ref(null)
 
 async function loadGameConfig() {
-  try { gameConfig.value = await $fetch('/api/config/game') } catch { /* ignore */ }
+  try { gameConfig.value = await $fetch('/api/config/game') } catch (_) { /* ignore */ }
 }
 
 // Realm background mapping
-const bgMap: Record<string, string> = {
+const bgMap = {
   condensing_qi: 'bg-realm-condensing', foundation: 'bg-realm-foundation',
   core_formation: 'bg-realm-core', nascent_soul: 'bg-realm-nascent',
   deity_transformation: 'bg-realm-deity', nascent_transformation: 'bg-realm-nascent-trans',
@@ -311,7 +311,7 @@ const realmBgClass = computed(() => bgMap[c.value?.realm] || 'bg-cultivate-bg')
 // Realm display
 const realmLabel = computed(() => {
   if (!gameConfig.value?.realms || !c.value?.realm) return c.value?.realm || ''
-  const r = gameConfig.value.realms.find((r: any) => r.key === c.value.realm)
+  const r = gameConfig.value.realms.find((r) => r.key === c.value.realm)
   return r?.label || c.value.realm
 })
 
@@ -322,7 +322,7 @@ const layerUnit = computed(() => {
 
 const nextRealmLabel = computed(() => {
   if (!gameConfig.value?.realms || !c.value?.realm) return ''
-  const idx = gameConfig.value.realms.findIndex((r: any) => r.key === c.value.realm)
+  const idx = gameConfig.value.realms.findIndex((r) => r.key === c.value.realm)
   const next = gameConfig.value.realms[idx + 1]
   return next?.label || ''
 })
@@ -334,7 +334,7 @@ const canBreakthrough = computed(() => {
 
 const baseChance = computed(() => {
   if (!gameConfig.value?.realms || !c.value?.realm) return 0.15
-  const r = gameConfig.value.realms.find((r: any) => r.key === c.value.realm)
+  const r = gameConfig.value.realms.find((r) => r.key === c.value.realm)
   return r?.breakthroughChance || 0.15
 })
 

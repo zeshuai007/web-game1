@@ -91,7 +91,7 @@ async function loadFriends() {
 
     // Get realm labels from config
     const config = await $fetch('/api/config/game').catch(() => null)
-    const realmMap: Record<string, string> = {}
+    const realmMap = {}
     if (config?.realms) for (const r of config.realms) realmMap[r.key] = r.label
 
     for (const f of friends.value) {
