@@ -77,6 +77,27 @@ export const pillTypeEnum = [
 
 export type PillType = typeof pillTypeEnum[number]
 
+export const friendRequests = pgTable('friend_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  fromCharacterId: uuid('from_character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  toCharacterId: uuid('to_character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  fromToIdx: uniqueIndex('from_to_idx').on(table.fromCharacterId, table.toCharacterId),
+}))
+
+export const daoRecords = pgTable('dao_records', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  fromCharacterId: uuid('from_character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  toCharacterId: uuid('to_character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  daoDate: varchar('dao_date', { length: 20 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  daoFromToDateIdx: uniqueIndex('dao_from_to_date_idx').on(table.fromCharacterId, table.toCharacterId, table.daoDate),
+}))
+
 export const adventureEvents = pgTable('adventure_events', {
   id: uuid('id').primaryKey().defaultRandom(),
   characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
