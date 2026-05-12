@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs'
 import { users, characters } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {
