@@ -5,8 +5,7 @@ export default defineEventHandler(async (event) => {
   const userId = event.context.userId
   const db = useDB()
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   const requests = await db.select()
     .from(friendRequests)

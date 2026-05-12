@@ -8,8 +8,7 @@ export default defineEventHandler(async (event) => {
   const { choice } = body || {}
   const db = useDB()
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   const [pending] = await db.select()
     .from(adventureTable)

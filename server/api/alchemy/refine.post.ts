@@ -25,8 +25,7 @@ export default defineEventHandler(async (event) => {
   const recipe = getRecipeCosts(pillType)
   if (!recipe) throw createError({ statusCode: 400, message: '未知的丹方' })
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   if (parseFloat(char.lingshi) < recipe.cost) {
     throw createError({ statusCode: 400, message: '灵石不足' })

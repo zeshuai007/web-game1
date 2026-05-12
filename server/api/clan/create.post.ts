@@ -10,8 +10,7 @@ export default defineEventHandler(async (event) => {
   if (!name || name.trim().length < 2) throw createError({ statusCode: 400, message: '宗门名称至少2个字符' })
   if (name.length > 20) throw createError({ statusCode: 400, message: '宗门名称不超过20个字符' })
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   // Check if already in a clan
   const [existingMember] = await db.select().from(clanMembers).where(eq(clanMembers.characterId, char.id)).limit(1)

@@ -12,8 +12,7 @@ export default defineEventHandler(async (event) => {
   const recipe = forgeRecipes.find(r => r.id === recipeId)
   if (!recipe) throw createError({ statusCode: 400, message: '未知的锻造配方' })
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   // Check lingshi
   const lingshi = parseFloat(char.lingshi)

@@ -8,8 +8,7 @@ export default defineEventHandler(async (event) => {
   const { requestId, action } = body || {}
   const db = useDB()
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   const [req] = await db.select().from(friendRequests).where(eq(friendRequests.id, requestId)).limit(1)
   if (!req) throw createError({ statusCode: 404, message: '请求不存在' })

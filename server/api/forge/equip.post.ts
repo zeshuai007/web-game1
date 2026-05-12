@@ -7,8 +7,7 @@ export default defineEventHandler(async (event) => {
   const { equipmentId, unequip } = body || {}
   const db = useDB()
 
-  const [char] = await db.select().from(characters).where(eq(characters.userId, userId))
-  if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+  const char = await useCharacter(event)
 
   const [item] = await db.select().from(equipment).where(eq(equipment.id, equipmentId)).limit(1)
   if (!item || item.characterId !== char.id) throw createError({ statusCode: 404, message: '装备不存在' })
