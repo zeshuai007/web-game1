@@ -1,7 +1,15 @@
+import { sql } from 'drizzle-orm'
 import { configRealms, configShopItems, configForgeRecipes, configAlchemyRecipes, configAchievementDefs, configMaterialNames } from '../../db/schema'
 
 export default defineEventHandler(async () => {
   const db = useDB()
+
+  // Auto-seed if config tables are empty (fresh database)
+  const [result] = await db.select({ count: sql`count(*)` }).from(configRealms)
+  if (parseInt(String(result?.count || '0')) === 0) {
+    const { seedConfig } = await import('../../db/seed')
+    await seedConfig(db)
+  }
 
   const [realms, shopItems, forgeRecipes, alchemyRecipes, achievementDefs, materialNames] = await Promise.all([
     db.select().from(configRealms).orderBy(configRealms.sortOrder),
