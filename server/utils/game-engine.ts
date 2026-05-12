@@ -1,4 +1,6 @@
-import { characters, realmEnum, type Realm, realmLabels } from '../db/schema'
+import { characters, realmEnum as realmEnumValues, type Realm, realmLabels } from '../db/schema'
+
+export const realmEnum = realmEnumValues
 
 export interface RealmConfig {
   label: string

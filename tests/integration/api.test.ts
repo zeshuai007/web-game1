@@ -381,6 +381,154 @@ describe('Adventure API', () => {
   })
 })
 
+describe('Friends API', () => {
+  let tokenA = '', tokenB = ''
+  let charIdA = '', charIdB = ''
+
+  beforeAll(async () => {
+    const ts = Date.now()
+    const a = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: `friend_a_${ts}@test.com`, password: 'test123456', nickname: '道友A' }),
+    })
+    const aBody = await a.json(); tokenA = aBody.token
+    const meA = await fetch(`${BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${tokenA}` } })
+    charIdA = (await meA.json()).character.id
+
+    const b = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: `friend_b_${ts}@test.com`, password: 'test123456', nickname: '道友B' }),
+    })
+    const bBody = await b.json(); tokenB = bBody.token
+    const meB = await fetch(`${BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${tokenB}` } })
+    charIdB = (await meB.json()).character.id
+  })
+
+  it('POST /api/friends/request - sends friend request', async () => {
+    const res = await fetch(`${BASE}/api/friends/request`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ toCharacterId: charIdB }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.status).toBe('pending')
+  })
+
+  it('POST /api/friends/request - rejects self-request', async () => {
+    const res = await fetch(`${BASE}/api/friends/request`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ toCharacterId: charIdA }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('POST /api/friends/request - rejects duplicate', async () => {
+    const res = await fetch(`${BASE}/api/friends/request`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ toCharacterId: charIdB }),
+    })
+    expect(res.status).toBe(409)
+  })
+
+  it('POST /api/friends/respond - accepts request', async () => {
+    // Get pending request ID
+    const pending = await (await fetch(`${BASE}/api/friends/pending`, { headers: { Authorization: `Bearer ${tokenB}` } })).json()
+    const reqId = pending.requests?.[0]?.id
+    if (!reqId) { expect(true).toBe(false); return }
+
+    const res = await fetch(`${BASE}/api/friends/respond`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenB}` },
+      body: JSON.stringify({ requestId: reqId, action: 'accept' }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.status).toBe('accepted')
+  })
+
+  it('GET /api/friends/list - returns friends', async () => {
+    const res = await fetch(`${BASE}/api/friends/list`, {
+      headers: { Authorization: `Bearer ${tokenA}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(Array.isArray(body.friends)).toBe(true)
+    expect(body.friends.some((f: any) => f.nickname === '道友B')).toBe(true)
+  })
+
+  it('DELETE /api/friends/:id - removes friend', async () => {
+    const list = await (await fetch(`${BASE}/api/friends/list`, { headers: { Authorization: `Bearer ${tokenA}` } })).json()
+    const friendId = list.friends[0]?.id
+    if (!friendId) return
+    const res = await fetch(`${BASE}/api/friends/${friendId}`, {
+      method: 'DELETE', headers: { Authorization: `Bearer ${tokenA}` },
+    })
+    expect(res.status).toBe(200)
+  })
+})
+
+describe('Dao API', () => {
+  let tokenA = '', tokenB = ''
+  let charIdA = '', charIdB = ''
+
+  beforeAll(async () => {
+    const ts = Date.now()
+    const a = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: `dao_a_${ts}@test.com`, password: 'test123456', nickname: 'DaoA' }),
+    })
+    const aBody = await a.json(); tokenA = aBody.token
+    const meA = await fetch(`${BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${tokenA}` } })
+    charIdA = (await meA.json()).character.id
+
+    const b = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: `dao_b_${ts}@test.com`, password: 'test123456', nickname: 'DaoB' }),
+    })
+    const bBody = await b.json(); tokenB = bBody.token
+    const meB = await fetch(`${BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${tokenB}` } })
+    charIdB = (await meB.json()).character.id
+  })
+
+  it('POST /api/friends/request - add friend for dao test', async () => {
+    await fetch(`${BASE}/api/friends/request`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ toCharacterId: charIdB }),
+    })
+  })
+
+  it('POST /api/friends/respond - accept', async () => {
+    // Find pending request
+    const list = await (await fetch(`${BASE}/api/friends/pending`, { headers: { Authorization: `Bearer ${tokenB}` } })).json()
+    if (list.requests?.length) {
+      await fetch(`${BASE}/api/friends/respond`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenB}` },
+        body: JSON.stringify({ requestId: list.requests[0].id, action: 'accept' }),
+      })
+    }
+  })
+
+  it('POST /api/dao/start - dao with friend gives lingqi', async () => {
+    const res = await fetch(`${BASE}/api/dao/start`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ targetCharacterId: charIdB }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.lingqiGain).toBeGreaterThan(0)
+    expect(body.message).toBeTruthy()
+  })
+
+  it('POST /api/dao/start - rejects duplicate same day', async () => {
+    const res = await fetch(`${BASE}/api/dao/start`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tokenA}` },
+      body: JSON.stringify({ targetCharacterId: charIdB }),
+    })
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.message).toContain('今日已论道')
+  })
+})
+
 describe('Sign-in API', () => {
   let token = ''
   const testEmail = `sign_${Date.now()}@vitest.com`
