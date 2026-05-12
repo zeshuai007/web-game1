@@ -286,38 +286,33 @@ onMounted(async () => {
   await auth.fetchMe()
   await fetchSignInStatus()
   await fetchInventory()
+  await loadGameConfig()
   gameLog.start()
-  // Check for adventure events on a timer
-  setInterval(checkAdventure, 30000) // every 30 seconds
+  setInterval(checkAdventure, 30000)
   checkAdventure()
 })
 
+// Game config from API
+const gameConfig = ref<any>(null)
+
+async function loadGameConfig() {
+  try { gameConfig.value = await $fetch('/api/config/game') } catch { /* ignore */ }
+}
+
 // Realm background mapping
-const realmBgClass = computed(() => {
-  const map = {
-    condensing_qi: 'bg-realm-condensing',
-    foundation: 'bg-realm-foundation',
-    core_formation: 'bg-realm-core',
-    nascent_soul: 'bg-realm-nascent',
-    deity_transformation: 'bg-realm-deity',
-    nascent_transformation: 'bg-realm-nascent-trans',
-    seeking_heaven: 'bg-realm-seeking',
-  }
-  return map[c.value?.realm] || 'bg-cultivate-bg'
-})
+const bgMap: Record<string, string> = {
+  condensing_qi: 'bg-realm-condensing', foundation: 'bg-realm-foundation',
+  core_formation: 'bg-realm-core', nascent_soul: 'bg-realm-nascent',
+  deity_transformation: 'bg-realm-deity', nascent_transformation: 'bg-realm-nascent-trans',
+  seeking_heaven: 'bg-realm-seeking',
+}
+const realmBgClass = computed(() => bgMap[c.value?.realm] || 'bg-cultivate-bg')
 
 // Realm display
 const realmLabel = computed(() => {
-  const labels = {
-    condensing_qi: '凝气期',
-    foundation: '筑基期',
-    core_formation: '结丹期',
-    nascent_soul: '元婴期',
-    deity_transformation: '化神期',
-    nascent_transformation: '婴变期',
-    seeking_heaven: '问鼎期',
-  }
-  return labels[c.value?.realm] || c.value?.realm || ''
+  if (!gameConfig.value?.realms || !c.value?.realm) return c.value?.realm || ''
+  const r = gameConfig.value.realms.find((r: any) => r.key === c.value.realm)
+  return r?.label || c.value.realm
 })
 
 const layerUnit = computed(() => {
@@ -326,16 +321,10 @@ const layerUnit = computed(() => {
 })
 
 const nextRealmLabel = computed(() => {
-  const next = {
-    condensing_qi: '筑基期',
-    foundation: '结丹期',
-    core_formation: '元婴期',
-    nascent_soul: '化神期',
-    deity_transformation: '婴变期',
-    nascent_transformation: '问鼎期',
-    seeking_heaven: null,
-  }
-  return next[c.value?.realm] || ''
+  if (!gameConfig.value?.realms || !c.value?.realm) return ''
+  const idx = gameConfig.value.realms.findIndex((r: any) => r.key === c.value.realm)
+  const next = gameConfig.value.realms[idx + 1]
+  return next?.label || ''
 })
 
 const canBreakthrough = computed(() => {
@@ -344,15 +333,9 @@ const canBreakthrough = computed(() => {
 })
 
 const baseChance = computed(() => {
-  const chances = {
-    condensing_qi: 0.5,
-    foundation: 0.4,
-    core_formation: 0.3,
-    nascent_soul: 0.25,
-    deity_transformation: 0.2,
-    nascent_transformation: 0.15,
-  }
-  return chances[c.value?.realm] || 0.15
+  if (!gameConfig.value?.realms || !c.value?.realm) return 0.15
+  const r = gameConfig.value.realms.find((r: any) => r.key === c.value.realm)
+  return r?.breakthroughChance || 0.15
 })
 
 // Inventory
