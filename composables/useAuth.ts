@@ -19,7 +19,7 @@ function saveToStorage(key: string, val: string | null) {
 export function useAuth() {
   const token = ref<string | null>(loadFromStorage('token'))
   const userId = ref<string | null>(loadFromStorage('userId'))
-  const character = useState<Character | null>('auth-character', () => null)
+  const character = ref<Character | null>(null)
 
   function setAuth(newToken: string, newUserId: string) {
     token.value = newToken
