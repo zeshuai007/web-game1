@@ -77,6 +77,17 @@ export const pillTypeEnum = [
 
 export type PillType = typeof pillTypeEnum[number]
 
+export const signInRecords = pgTable('sign_in_records', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  signDate: varchar('sign_date', { length: 20 }).notNull(),
+  consecutiveDays: integer('consecutive_days').notNull().default(1),
+  reward: decimal('reward', { precision: 10, scale: 2 }).notNull().default('0'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  characterDateIdx: uniqueIndex('character_date_idx').on(table.characterId, table.signDate),
+}))
+
 export const alchemyRecords = pgTable('alchemy_records', {
   id: uuid('id').primaryKey().defaultRandom(),
   characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),

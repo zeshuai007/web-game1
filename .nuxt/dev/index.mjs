@@ -2401,6 +2401,16 @@ const pillTypeEnum = [
   "wending_dan"
   // 问鼎丹 - 婴变→问鼎突破
 ];
+const signInRecords = pgTable("sign_in_records", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  characterId: uuid("character_id").notNull().references(() => characters.id, { onDelete: "cascade" }),
+  signDate: varchar("sign_date", { length: 20 }).notNull(),
+  consecutiveDays: integer("consecutive_days").notNull().default(1),
+  reward: decimal("reward", { precision: 10, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => ({
+  characterDateIdx: uniqueIndex("character_date_idx").on(table.characterId, table.signDate)
+}));
 const alchemyRecords = pgTable("alchemy_records", {
   id: uuid("id").primaryKey().defaultRandom(),
   characterId: uuid("character_id").notNull().references(() => characters.id, { onDelete: "cascade" }),
@@ -2824,6 +2834,9 @@ const _lazy_Z05fk4 = () => Promise.resolve().then(function () { return inventory
 const _lazy_Q7Niti = () => Promise.resolve().then(function () { return rankings_get$1; });
 const _lazy_OPCePv = () => Promise.resolve().then(function () { return buy_post$1; });
 const _lazy_CILEKp = () => Promise.resolve().then(function () { return items_get$1; });
+const _lazy_SXOtoj = () => Promise.resolve().then(function () { return index_post$1; });
+const _lazy_3Bh85x = () => Promise.resolve().then(function () { return inject_post$1; });
+const _lazy_lIwrGf = () => Promise.resolve().then(function () { return status_get$1; });
 const _lazy_O1KNi3 = () => Promise.resolve().then(function () { return renderer; });
 
 const handlers = [
@@ -2840,6 +2853,9 @@ const handlers = [
   { route: '/api/rankings', handler: _lazy_Q7Niti, lazy: true, middleware: false, method: "get" },
   { route: '/api/shop/buy', handler: _lazy_OPCePv, lazy: true, middleware: false, method: "post" },
   { route: '/api/shop/items', handler: _lazy_CILEKp, lazy: true, middleware: false, method: "get" },
+  { route: '/api/sign-in', handler: _lazy_SXOtoj, lazy: true, middleware: false, method: "post" },
+  { route: '/api/sign-in/inject', handler: _lazy_3Bh85x, lazy: true, middleware: false, method: "post" },
+  { route: '/api/sign-in/status', handler: _lazy_lIwrGf, lazy: true, middleware: false, method: "get" },
   { route: '/__nuxt_error', handler: _lazy_O1KNi3, lazy: true, middleware: false, method: undefined },
   { route: '/__nuxt_island/**', handler: handler$1, lazy: false, middleware: false, method: undefined },
   { route: '/**', handler: _lazy_O1KNi3, lazy: true, middleware: false, method: undefined }
@@ -3702,6 +3718,93 @@ const items_get = defineEventHandler(async () => {
 const items_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   __proto__: null,
   default: items_get
+}, Symbol.toStringTag, { value: 'Module' }));
+
+function calcReward(consecutiveDays) {
+  const day = Math.min(consecutiveDays, 28);
+  if (day <= 7) {
+    const rewards = [10, 15, 25, 40, 55, 75, 100];
+    return rewards[day - 1];
+  }
+  return 100 + (day - 7) * 5;
+}
+const index_post = defineEventHandler(async (event) => {
+  const userId = event.context.userId;
+  const db = useDB();
+  const [char] = await db.select().from(characters).where(eq(characters.userId, userId));
+  if (!char) {
+    throw createError({ statusCode: 404, message: "\u89D2\u8272\u4E0D\u5B58\u5728" });
+  }
+  const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  const [existing] = await db.select().from(signInRecords).where(and(
+    eq(signInRecords.characterId, char.id),
+    eq(signInRecords.signDate, today)
+  )).limit(1);
+  if (existing) {
+    throw createError({ statusCode: 409, message: "\u4ECA\u65E5\u5DF2\u7B7E\u5230" });
+  }
+  const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+  const [yesterdayRecord] = await db.select().from(signInRecords).where(and(
+    eq(signInRecords.characterId, char.id),
+    eq(signInRecords.signDate, yesterday)
+  )).limit(1);
+  const consecutiveDays = yesterdayRecord ? yesterdayRecord.consecutiveDays + 1 : 1;
+  const reward = calcReward(consecutiveDays);
+  await db.insert(signInRecords).values({
+    characterId: char.id,
+    signDate: today,
+    consecutiveDays,
+    reward: String(reward)
+  });
+  const newLingshi = parseFloat(char.lingshi) + reward;
+  await db.update(characters).set({ lingshi: String(newLingshi), updatedAt: /* @__PURE__ */ new Date() }).where(eq(characters.id, char.id));
+  return { success: true, reward, consecutiveDays };
+});
+
+const index_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: index_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const inject_post = defineEventHandler(async (event) => {
+  const userId = event.context.userId;
+  const body = await readBody(event);
+  const { characterId, signDate, consecutiveDays, reward } = body || {};
+  const db = useDB();
+  const [char] = await db.select().from(characters).where(eq(characters.userId, userId));
+  if (!char) throw createError({ statusCode: 404, message: "\u89D2\u8272\u4E0D\u5B58\u5728" });
+  if (char.id !== characterId) throw createError({ statusCode: 403, message: "\u89D2\u8272\u4E0D\u5339\u914D" });
+  await db.insert(signInRecords).values({ characterId, signDate, consecutiveDays, reward: String(reward) });
+  return { success: true };
+});
+
+const inject_post$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: inject_post
+}, Symbol.toStringTag, { value: 'Module' }));
+
+const status_get = defineEventHandler(async (event) => {
+  const userId = event.context.userId;
+  const db = useDB();
+  const [char] = await db.select().from(characters).where(eq(characters.userId, userId));
+  if (!char) {
+    throw createError({ statusCode: 404, message: "\u89D2\u8272\u4E0D\u5B58\u5728" });
+  }
+  const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+  const [record] = await db.select().from(signInRecords).where(and(
+    eq(signInRecords.characterId, char.id),
+    eq(signInRecords.signDate, today)
+  )).limit(1);
+  return {
+    signedIn: !!record,
+    consecutiveDays: (record == null ? void 0 : record.consecutiveDays) || 0,
+    todaySignDate: today
+  };
+});
+
+const status_get$1 = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
+  __proto__: null,
+  default: status_get
 }, Symbol.toStringTag, { value: 'Module' }));
 
 function renderPayloadResponse(ssrContext) {

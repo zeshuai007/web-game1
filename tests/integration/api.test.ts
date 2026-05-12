@@ -240,3 +240,97 @@ describe('Rankings API', () => {
     expect(Array.isArray(body.rankings)).toBe(true)
   })
 })
+
+describe('Sign-in API', () => {
+  let token = ''
+  const testEmail = `sign_${Date.now()}@vitest.com`
+
+  beforeAll(async () => {
+    const res = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: testEmail, password: 'test123456' }),
+    })
+    const body = await res.json()
+    token = body.token
+  })
+
+  it('POST /api/sign-in - returns reward and consecutive days', async () => {
+    const res = await fetch(`${BASE}/api/sign-in`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.reward).toBeTypeOf('number')
+    expect(body.consecutiveDays).toBeTypeOf('number')
+    expect(body.consecutiveDays).toBe(1)
+    expect(body.reward).toBe(10)
+  })
+
+  it('GET /api/sign-in/status - returns today status', async () => {
+    const res = await fetch(`${BASE}/api/sign-in/status`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.signedIn).toBe(true)
+    expect(body.consecutiveDays).toBe(1)
+  })
+
+  it('POST /api/sign-in - rejects duplicate sign-in same day', async () => {
+    const res = await fetch(`${BASE}/api/sign-in`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(409)
+    const body = await res.json()
+    expect(body.message).toContain('已签到')
+  })
+})
+
+describe('Sign-in consecutive rewards', () => {
+  let token = ''
+  let characterId = ''
+  const testEmail = `sign2_${Date.now()}@vitest.com`
+
+  beforeAll(async () => {
+    const res = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: testEmail, password: 'test123456' }),
+    })
+    const body = await res.json()
+    token = body.token
+
+    // Get character ID from /me
+    const me = await fetch(`${BASE}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const meBody = await me.json()
+    characterId = meBody.character.id
+  })
+
+  it('day 2 sign-in gives increased reward', async () => {
+    // Simulate yesterday's sign-in by inserting directly into DB
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+    const dbBody = { characterId, signDate: yesterday, consecutiveDays: 1, reward: '10' }
+
+    const injectRes = await fetch(`${BASE}/api/sign-in/inject`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(dbBody),
+    })
+    expect(injectRes.status).toBe(200)
+
+    // Now sign in today — should be day 2
+    const res = await fetch(`${BASE}/api/sign-in`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.consecutiveDays).toBe(2)
+    expect(body.reward).toBe(15)
+  })
+})
