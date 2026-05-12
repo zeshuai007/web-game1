@@ -70,6 +70,7 @@ const router = useRouter()
 
 const recipes = ref([])
 const equipList = ref([])
+const matInventory = ref([])
 const crafting = ref('')
 const loading = ref(true)
 const message = ref('')
@@ -87,18 +88,12 @@ onMounted(async () => {
 
 async function load() {
   try {
-    const [craftRes, invRes] = await Promise.all([
-      $fetch('/api/alchemy/list', { headers: auth.getHeaders() }),
+    const [invRes, matRes] = await Promise.all([
       $fetch('/api/forge/inventory', { headers: auth.getHeaders() }),
+      $fetch('/api/inventory', { headers: auth.getHeaders() }),
     ])
-
-    recipes.value = [
-      { id: 'wooden_sword', name: '木剑', slot: 'weapon', materials: [{ id: 'youhun_cao', qty: 3 }], cost: 50 },
-      { id: 'bronze_armor', name: '青铜甲', slot: 'armor', materials: [{ id: 'ningxue_hua', qty: 3 }], cost: 80 },
-      { id: 'jade_pendant', name: '玉佩', slot: 'accessory', materials: [{ id: 'hansui_ye', qty: 3 }], cost: 100 },
-      { id: 'spirit_circlet', name: '灵环', slot: 'artifact', materials: [{ id: 'longxian_guo', qty: 2 }, { id: 'wannian_lingzhi', qty: 1 }], cost: 500 },
-    ]
     equipList.value = invRes.items
+    matInventory.value = matRes.items
   } catch { /* ignore */ }
 }
 
@@ -110,11 +105,12 @@ async function loadInventory() {
 }
 
 function getMaterialQty(materialId) {
-  return 0 // We'll use the inventory from the load
+  const item = matInventory.value.find(i => i.itemId === materialId)
+  return item ? item.quantity : 0
 }
 
 function hasMaterial(materialId, qty) {
-  return true // Simplified check
+  return getMaterialQty(materialId) >= qty
 }
 
 function hasLingshi(cost) {
