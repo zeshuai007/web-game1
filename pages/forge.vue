@@ -77,12 +77,21 @@ const message = ref('')
 const msgType = ref('ok')
 
 const slotNames = { weapon: '武器', armor: '护甲', accessory: '饰品', artifact: '法宝' }
-const materialLabels = { youhun_cao: '幽魂草', ningxue_hua: '凝血花', hansui_ye: '寒髓叶', longxian_guo: '龙涎果', wannian_lingzhi: '万年灵芝', qicai_xuelian: '七彩雪莲' }
-function materialLabel(id) { return materialLabels[id] || id }
+const configMaterialNames = ref({})
+
+async function loadConfig() {
+  try {
+    const config = await $fetch('/api/config/game')
+    recipes.value = config.forgeRecipes
+    for (const m of config.materialNames) configMaterialNames.value[m.itemId] = m.name
+  } catch { /* ignore */ }
+}
+
+function materialLabel(id) { return configMaterialNames.value[id] || id }
 
 onMounted(async () => {
   if (!auth.isLoggedIn()) { router.push('/'); return }
-  await load()
+  await Promise.all([load(), loadConfig()])
   loading.value = false
 })
 

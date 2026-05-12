@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
-import { characters, inventory, equipment } from '../../db/schema'
-import { forgeRecipes, rollQuality, calcQualityBonuses, qualityNames } from '../../utils/game-engine'
+import { characters, inventory, equipment, configForgeRecipes } from '../../db/schema'
+import { rollQuality, calcQualityBonuses, qualityNames } from '../../utils/game-engine'
 import { fireAchievementCheck } from '../../utils/achievement-engine'
 
 export default defineEventHandler(async (event) => {
@@ -8,8 +8,9 @@ export default defineEventHandler(async (event) => {
   const { recipeId } = body || {}
   const db = useDB()
 
-  const recipe = forgeRecipes.find(r => r.id === recipeId)
-  if (!recipe) throw createError({ statusCode: 400, message: '未知的锻造配方' })
+  const [recipeRow] = await db.select().from(configForgeRecipes).where(eq(configForgeRecipes.recipeId, recipeId)).limit(1)
+  if (!recipeRow) throw createError({ statusCode: 400, message: '未知的锻造配方' })
+  const recipe = { id: recipeRow.recipeId, name: recipeRow.name, slot: recipeRow.slot, materials: JSON.parse(recipeRow.materialsJson) as { id: string; qty: number }[], cost: recipeRow.cost }
 
   const char = await useCharacter(event)
 
