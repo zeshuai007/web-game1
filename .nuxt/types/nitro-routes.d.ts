@@ -36,6 +36,15 @@ declare module "nitropack/types" {
     '/api/shop/items': {
       'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/shop/items.get').default>>>>
     }
+    '/api/sign-in': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/sign-in/index.post').default>>>>
+    }
+    '/api/sign-in/inject': {
+      'post': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/sign-in/inject.post').default>>>>
+    }
+    '/api/sign-in/status': {
+      'get': Simplify<Serialize<Awaited<ReturnType<typeof import('../../server/api/sign-in/status.get').default>>>>
+    }
     '/__nuxt_error': {
       'default': Simplify<Serialize<Awaited<ReturnType<typeof import('../../node_modules/@nuxt/nitro-server/dist/runtime/handlers/renderer').default>>>>
     }

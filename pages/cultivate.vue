@@ -54,6 +54,29 @@
           </button>
         </div>
 
+        <!-- Sign-in Card -->
+        <div class="bg-ink-900/70 border border-ink-700 rounded-lg p-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm text-ink-400 uppercase tracking-wider">每日签到</h3>
+              <p v-if="signInStatus.signedIn" class="text-xs text-jade-400 mt-1">
+                已签到 {{ signInStatus.consecutiveDays }} 天
+              </p>
+              <p v-else class="text-xs text-ink-500 mt-1">
+                连续 {{ signInStatus.consecutiveDays || 0 }} 天
+              </p>
+            </div>
+            <button v-if="!signInStatus.signedIn" @click="handleSignIn" :disabled="signingIn"
+              class="px-4 py-2 bg-gold-700 hover:bg-gold-600 disabled:bg-ink-700 disabled:text-ink-500 text-white rounded text-sm transition-colors">
+              {{ signingIn ? '签到中...' : '签到' }}
+            </button>
+            <div v-else class="text-jade-400 text-sm font-bold">✓ 已签到</div>
+          </div>
+          <div v-if="signInReward > 0" class="mt-2 text-xs text-gold-400">
+            获得 {{ signInReward }} 灵石奖励
+          </div>
+        </div>
+
         <!-- Inventory Summary -->
         <div class="bg-ink-900/70 border border-ink-700 rounded-lg p-4">
           <h3 class="text-sm text-ink-400 uppercase tracking-wider mb-2">背包</h3>
@@ -110,12 +133,44 @@ const router = useRouter()
 const gameLog = useGameLoop()
 const c = auth.character // top-level ref for template auto-unwrap
 
+// Sign-in state
+const signInStatus = reactive({ signedIn: false, consecutiveDays: 0 })
+const signingIn = ref(false)
+const signInReward = ref(0)
+
+async function fetchSignInStatus() {
+  try {
+    const res = await $fetch('/api/sign-in/status', { headers: auth.getHeaders() })
+    signInStatus.signedIn = res.signedIn
+    signInStatus.consecutiveDays = res.consecutiveDays
+  } catch { /* ignore */ }
+}
+
+async function handleSignIn() {
+  signingIn.value = true
+  try {
+    const res = await $fetch('/api/sign-in', {
+      method: 'POST',
+      headers: auth.getHeaders(),
+    })
+    signInStatus.signedIn = true
+    signInStatus.consecutiveDays = res.consecutiveDays
+    signInReward.value = res.reward
+    await auth.fetchMe() // refresh lingshi
+  } catch (e) {
+    gameLog.addEvent('签到失败：' + (e.data?.message || e.message || '未知错误'))
+  } finally {
+    signingIn.value = false
+  }
+}
+
 onMounted(async () => {
   if (!auth.isLoggedIn()) {
     router.push('/')
     return
   }
   await auth.fetchMe()
+  await fetchSignInStatus()
   await fetchInventory()
   gameLog.start()
 })
