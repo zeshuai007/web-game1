@@ -89,10 +89,13 @@ async function loadFriends() {
     ])
     friends.value = listRes.friends.map((f) => ({ ...f, daoDone: false }))
 
-    // Get realm labels and dao status
+    // Get realm labels from config
+    const config = await $fetch('/api/config/game').catch(() => null)
+    const realmMap: Record<string, string> = {}
+    if (config?.realms) for (const r of config.realms) realmMap[r.key] = r.label
+
     for (const f of friends.value) {
-      const labels = { condensing_qi: '凝气期', foundation: '筑基期', core_formation: '结丹期', nascent_soul: '元婴期', deity_transformation: '化神期', nascent_transformation: '婴变期', seeking_heaven: '问鼎期' }
-      f.realmLabel = labels[f.realm] || f.realm
+      f.realmLabel = realmMap[f.realm] || f.realm
       // Check if already dao'd today
       try {
         const daoStatus = await $fetch(`/api/dao/status?targetId=${f.friendId}`, { headers: auth.getHeaders() })
