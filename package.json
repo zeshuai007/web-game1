@@ -12,7 +12,9 @@
     "db:migrate": "drizzle-kit migrate",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "vercel-build": "nuxt build",
+    "postinstall": "if [ \"$VERCEL\" = \"1\" ]; then npx drizzle-kit push --force; fi"
   },
   "keywords": [],
   "author": "",

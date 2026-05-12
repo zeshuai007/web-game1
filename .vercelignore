@@ -1,0 +1,5 @@
+.nuxt
+test-results
+tests
+*.log
+pgdata
