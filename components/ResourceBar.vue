@@ -18,7 +18,7 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   label: { type: String, required: true },
   icon: { type: String, default: '' },
   current: { type: [String, Number], default: '0' },
