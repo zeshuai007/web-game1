@@ -1,6 +1,7 @@
 import { eq, and } from 'drizzle-orm'
 import { characters, daoRecords, friendRequests, type Realm } from '../../db/schema'
 import { realmConfigs, realmEnum } from '../../utils/game-engine'
+import { fireAchievementCheck } from '../../utils/achievement-engine'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -73,5 +74,6 @@ export default defineEventHandler(async (event) => {
   // Record
   await db.insert(daoRecords).values({ fromCharacterId: from.id, toCharacterId: targetCharacterId, daoDate: today })
 
+  fireAchievementCheck(event, 'dao')
   return { success: true, lingqiGain: fromGain, message: `论道获益，获得 ${fromGain} 灵气` }
 })

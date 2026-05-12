@@ -132,6 +132,31 @@ export const clanTaskProgress = pgTable('clan_task_progress', {
   taskCharIdx: uniqueIndex('task_char_idx').on(table.clanTaskId, table.characterId),
 }))
 
+export const achievements = pgTable('achievements', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  category: varchar('category', { length: 20 }).notNull(),
+  key: varchar('key', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: varchar('description', { length: 200 }).notNull(),
+  conditionType: varchar('condition_type', { length: 50 }).notNull(),
+  conditionValue: integer('condition_value').notNull().default(0),
+  rewardType: varchar('reward_type', { length: 50 }).notNull().default('lingshi'),
+  rewardValue: integer('reward_value').notNull().default(0),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+export const characterAchievements = pgTable('character_achievements', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  achievementId: uuid('achievement_id').notNull().references(() => achievements.id, { onDelete: 'cascade' }),
+  progress: integer('progress').notNull().default(0),
+  completed: integer('completed').notNull().default(0),
+  completedAt: timestamp('completed_at'),
+  claimed: integer('claimed').notNull().default(0),
+}, (table) => ({
+  charAchIdx: uniqueIndex('char_ach_idx').on(table.characterId, table.achievementId),
+}))
+
 export const equipment = pgTable('equipment', {
   id: uuid('id').primaryKey().defaultRandom(),
   characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),

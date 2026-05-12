@@ -1,6 +1,7 @@
 import { eq, and } from 'drizzle-orm'
 import { characters, inventory, equipment } from '../../db/schema'
 import { forgeRecipes, rollQuality, calcQualityBonuses, qualityNames } from '../../utils/game-engine'
+import { fireAchievementCheck } from '../../utils/achievement-engine'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -46,5 +47,6 @@ export default defineEventHandler(async (event) => {
     bonusLingshiRate: String(bonuses.bonusLingshiRate),
   }).returning()
 
+  fireAchievementCheck(event, 'forge')
   return { equipment: eqp, quality, qualityName, message: `锻造成功！获得${qualityName}${recipe.name}` }
 })

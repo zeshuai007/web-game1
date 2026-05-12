@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { characters, friendRequests } from '../../db/schema'
+import { fireAchievementCheck } from '../../utils/achievement-engine'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -22,5 +23,6 @@ export default defineEventHandler(async (event) => {
     .where(eq(friendRequests.id, requestId))
     .returning()
 
+  if (status === 'accepted') fireAchievementCheck(event, 'friend')
   return { id: updated.id, status: updated.status }
 })

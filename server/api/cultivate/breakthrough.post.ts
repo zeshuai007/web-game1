@@ -4,6 +4,7 @@ import {
   realmConfigs, isMaxLayer, getNextRealm, getMaxLayer,
   breakthroughRoll, getPillBreakthroughBonus, breakthroughBaseChance,
 } from '../../utils/game-engine'
+import { fireAchievementCheck } from '../../utils/achievement-engine'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -84,6 +85,7 @@ export default defineEventHandler(async (event) => {
       .where(eq(characters.id, char.id))
       .returning()
 
+    fireAchievementCheck(event, 'breakthrough', nextRealm)
     return {
       success: true,
       message: `天降福缘！成功突破至${cfg.label}→${nextCfg.label}！`,

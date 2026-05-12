@@ -28,6 +28,7 @@ const navItems = [
   { to: '/friends', label: '好友' },
   { to: '/alchemy', label: '丹房' },
   { to: '/forge', label: '炼器' },
+  { to: '/achievements', label: '成就' },
   { to: '/shop', label: '坊市' },
   { to: '/rankings', label: '排行榜' },
 ]
