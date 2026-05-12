@@ -36,6 +36,10 @@ import {
   getPillBreakthroughBonus,
   realmConfigs,
   breakthroughBaseChance,
+  rollQuality,
+  calcQualityBonuses,
+  qualityNames,
+  forgeRecipes,
 } from '../../server/utils/game-engine'
 
 function mockCharacter(overrides = {}) {
@@ -220,6 +224,52 @@ describe('realm config consistency', () => {
     }
   })
 
+  it('has forge recipes with valid slots', () => {
+    for (const r of forgeRecipes) {
+      expect(r.slot).toMatch(/weapon|armor|accessory|artifact/)
+      expect(r.cost).toBeGreaterThan(0)
+      expect(r.materials.length).toBeGreaterThan(0)
+    }
+  })
+})
+
+describe('forge system', () => {
+  it('rollQuality returns 0-4', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.49)
+    expect(rollQuality()).toBe(0)
+    Math.random.mockRestore()
+  })
+
+  it('rollQuality respects probability thresholds', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.79)
+    expect(rollQuality()).toBe(1)
+    Math.random.mockRestore()
+  })
+
+  it('rollQuality can return highest quality', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.999)
+    expect(rollQuality()).toBe(4)
+    Math.random.mockRestore()
+  })
+
+  it('calcQualityBonuses returns increasing rates', () => {
+    const bonuses = [0, 1, 2, 3, 4].map(calcQualityBonuses)
+    for (let i = 1; i < bonuses.length; i++) {
+      expect(bonuses[i].bonusLingqiRate).toBeGreaterThan(bonuses[i - 1].bonusLingqiRate)
+      expect(bonuses[i].bonusLingshiRate).toBeGreaterThan(bonuses[i - 1].bonusLingshiRate)
+    }
+  })
+
+  it('calcQualityBonuses returns correct values', () => {
+    expect(calcQualityBonuses(0)).toEqual({ bonusLingqiRate: 0.02, bonusLingshiRate: 0.02 })
+    expect(calcQualityBonuses(2)).toEqual({ bonusLingqiRate: 0.10, bonusLingshiRate: 0.10 })
+    expect(calcQualityBonuses(4)).toEqual({ bonusLingqiRate: 0.40, bonusLingshiRate: 0.40 })
+  })
+
+  afterEach(() => { vi.restoreAllMocks() })
+})
+
+describe('realm config consistency', () => {
   it('has breakthrough chances for all realm boundaries', () => {
     expect(breakthroughBaseChance['condensing_qi→foundation']).toBe(0.5)
     expect(breakthroughBaseChance['foundation→core_formation']).toBe(0.4)

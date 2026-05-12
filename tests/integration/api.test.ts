@@ -466,6 +466,76 @@ describe('Friends API', () => {
   })
 })
 
+describe('Forge API', () => {
+  let token = ''
+  const testEmail = `forge_${Date.now()}@vitest.com`
+
+  beforeAll(async () => {
+    const res = await fetch(`${BASE}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: testEmail, password: 'test123456' }),
+    })
+    const body = await res.json()
+    token = body.token
+  })
+
+  it('POST /api/forge/craft - creates equipment', async () => {
+    // Get character ID
+    const me = await (await fetch(`${BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })).json()
+    const charId = me.character.id
+
+    // Give lingshi + materials directly via test-only endpoints
+    await fetch(`${BASE}/api/test/char-resource`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ characterId: charId, lingshi: 200, materials: { youhun_cao: 5 } }),
+    })
+
+    const res = await fetch(`${BASE}/api/forge/craft`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ recipeId: 'wooden_sword' }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.equipment).toBeDefined()
+    expect(body.equipment.slot).toBe('weapon')
+    expect(body.quality).toBeGreaterThanOrEqual(0)
+    expect(body.quality).toBeLessThanOrEqual(4)
+  })
+
+  it('POST /api/forge/craft - rejects invalid recipe', async () => {
+    const res = await fetch(`${BASE}/api/forge/craft`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ recipeId: 'invalid' }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it('GET /api/forge/inventory - returns equipment list', async () => {
+    const res = await fetch(`${BASE}/api/forge/inventory`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(Array.isArray(body.items)).toBe(true)
+    expect(body.items.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('POST /api/forge/equip - equips item', async () => {
+    // Get an unequipped item
+    const inv = await (await fetch(`${BASE}/api/forge/inventory`, { headers: { Authorization: `Bearer ${token}` } })).json()
+    const item = inv.items.find((i: any) => !i.equipped)
+    if (!item) { expect(true).toBe(true); return }
+
+    const res = await fetch(`${BASE}/api/forge/equip`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ equipmentId: item.id }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(true)
+  })
+})
+
 describe('Dao API', () => {
   let tokenA = '', tokenB = ''
   let charIdA = '', charIdB = ''

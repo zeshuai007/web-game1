@@ -27,6 +27,7 @@ const navItems = [
   { to: '/cultivate', label: '修炼' },
   { to: '/friends', label: '好友' },
   { to: '/alchemy', label: '丹房' },
+  { to: '/forge', label: '炼器' },
   { to: '/shop', label: '坊市' },
   { to: '/rankings', label: '排行榜' },
 ]
