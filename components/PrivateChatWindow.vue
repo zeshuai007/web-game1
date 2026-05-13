@@ -37,7 +37,7 @@
           v-model="draft"
           type="text"
           maxlength="200"
-          :disabled="sending || (chat.isRealtimeEnabled && chat.connectionState !== 'connected')"
+          :disabled="sending || (isRealtimeEnabled && connectionState !== 'connected')"
           placeholder="输入私聊内容..."
           class="flex-1 px-3 py-2 bg-ink-900 border border-ink-700 rounded text-sm text-ink-100 placeholder-ink-500 focus:outline-none focus:border-jade-600 disabled:bg-ink-950 disabled:text-ink-500"
         />
@@ -76,6 +76,8 @@ const draft = ref('')
 const sending = ref(false)
 const errorMessage = ref('')
 const scroller = ref<HTMLElement | null>(null)
+const connectionState = computed(() => chat.connectionState.value)
+const isRealtimeEnabled = computed(() => chat.isRealtimeEnabled.value)
 
 async function handleSend() {
   if (!draft.value.trim() || sending.value) return
