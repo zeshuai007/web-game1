@@ -13,7 +13,11 @@ export default defineEventHandler(async () => {
     await db.insert(configRealms).values({
       key, label: cfg.label, lingqiCap: String(cfg.lingqiCap),
       lingshiRate: String(cfg.lingshiRate), lingqiRate: String(cfg.lingqiRate),
-      breakthroughChance: chanceStr, maxLayer: getMaxLayer(key), sortOrder: i,
+      breakthroughChance: chanceStr, maxLayer: getMaxLayer(key),
+      progressRetainRate: cfg.progressRetainRate != null ? String(cfg.progressRetainRate) : null,
+      pityChanceStep: cfg.pityChanceStep != null ? String(cfg.pityChanceStep) : null,
+      pityChanceMax: cfg.pityChanceMax != null ? String(cfg.pityChanceMax) : null,
+      sortOrder: i,
     }).onConflictDoNothing()
   }
 

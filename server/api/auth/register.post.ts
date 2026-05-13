@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
-import { users, characters } from '../../db/schema'
+import { users, characters, configRealms } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
@@ -30,7 +30,15 @@ export default defineEventHandler(async (event) => {
 
   const [user] = await db.insert(users).values({ email, passwordHash }).returning()
 
-  const cfg = realmConfigs['condensing_qi']
+  const [configuredRealm] = await db.select().from(configRealms).where(eq(configRealms.key, 'condensing_qi')).limit(1)
+  const cfg = configuredRealm
+    ? {
+        lingqiCap: parseFloat(configuredRealm.lingqiCap),
+        lingshiRate: parseFloat(configuredRealm.lingshiRate),
+        lingqiRate: parseFloat(configuredRealm.lingqiRate),
+      }
+    : realmConfigs['condensing_qi']
+
   await db.insert(characters).values({
     userId: user.id,
     nickname: nickname || '无名散修',

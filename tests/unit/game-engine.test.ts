@@ -109,8 +109,8 @@ describe('calcOfflineEarnings', () => {
   it('calculates earnings correctly for given minutes', () => {
     const char = mockCharacter({ realm: 'condensing_qi' })
     const result = calcOfflineEarnings(char, 60) // 1 hour
-    expect(result.lingqiGain).toBe(10 * 60) // rate 10 * 60 min
-    expect(result.lingshiGain).toBe(10 * 60)
+    expect(result.lingqiGain).toBe(realmConfigs.condensing_qi.lingqiRate * 60)
+    expect(result.lingshiGain).toBe(realmConfigs.condensing_qi.lingshiRate * 60)
     expect(result.effectiveMinutes).toBe(60)
   })
 
@@ -118,7 +118,7 @@ describe('calcOfflineEarnings', () => {
     const char = mockCharacter({ realm: 'condensing_qi' })
     const result = calcOfflineEarnings(char, 60 * 48) // 48 hours
     expect(result.effectiveMinutes).toBe(24 * 60) // capped at 1440
-    expect(result.lingqiGain).toBe(10 * 24 * 60)
+    expect(result.lingqiGain).toBe(realmConfigs.condensing_qi.lingqiRate * 24 * 60)
   })
 
   it('uses higher rates for higher realms', () => {
@@ -132,20 +132,20 @@ describe('calcOfflineEarnings', () => {
 
 describe('breakthroughRoll', () => {
   it('uses base chance without pill', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.49)
+    vi.spyOn(Math, 'random').mockReturnValue(0.59)
     expect(breakthroughRoll('condensing_qi', false)).toBe(true)
     Math.random.mockRestore()
   })
 
   it('fails when random is above base chance', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.51)
+    vi.spyOn(Math, 'random').mockReturnValue(0.61)
     expect(breakthroughRoll('condensing_qi', false)).toBe(false)
     Math.random.mockRestore()
   })
 
   it('adds 20% when pill is used', () => {
-    vi.spyOn(Math, 'random').mockReturnValue(0.65)
-    expect(breakthroughRoll('condensing_qi', true)).toBe(true) // 0.5 + 0.2 = 0.7
+    vi.spyOn(Math, 'random').mockReturnValue(0.75)
+    expect(breakthroughRoll('condensing_qi', true)).toBe(true)
     Math.random.mockRestore()
   })
 
@@ -271,8 +271,8 @@ describe('forge system', () => {
 
 describe('realm config consistency', () => {
   it('has breakthrough chances for all realm boundaries', () => {
-    expect(breakthroughBaseChance['condensing_qi→foundation']).toBe(0.5)
-    expect(breakthroughBaseChance['foundation→core_formation']).toBe(0.4)
+    expect(breakthroughBaseChance['condensing_qi→foundation']).toBe(0.6)
+    expect(breakthroughBaseChance['foundation→core_formation']).toBe(0.5)
     expect(breakthroughBaseChance['core_formation→nascent_soul']).toBe(0.3)
     expect(breakthroughBaseChance['nascent_soul→deity_transformation']).toBe(0.25)
     expect(breakthroughBaseChance['deity_transformation→nascent_transformation']).toBe(0.2)

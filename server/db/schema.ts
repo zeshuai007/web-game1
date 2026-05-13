@@ -9,6 +9,9 @@ export const configRealms = pgTable('config_realms', {
   lingqiRate: decimal('lingqi_rate', { precision: 10, scale: 2 }).notNull(),
   breakthroughChance: decimal('breakthrough_chance', { precision: 4, scale: 2 }).notNull(),
   maxLayer: integer('max_layer').notNull().default(3),
+  progressRetainRate: decimal('progress_retain_rate', { precision: 4, scale: 2 }),
+  pityChanceStep: decimal('pity_chance_step', { precision: 4, scale: 2 }),
+  pityChanceMax: decimal('pity_chance_max', { precision: 4, scale: 2 }),
   sortOrder: integer('sort_order').notNull().default(0),
 })
 
@@ -99,6 +102,7 @@ export const characters = pgTable('characters', {
   lingshi: decimal('lingshi', { precision: 20, scale: 4 }).notNull().default('0'),
   lingshiRate: decimal('lingshi_rate', { precision: 10, scale: 4 }).notNull().default('1'),
   lingqiRate: decimal('lingqi_rate', { precision: 10, scale: 4 }).notNull().default('1'),
+  breakthroughFailureCount: integer('breakthrough_failure_count').notNull().default(0),
   offlineStartedAt: timestamp('offline_started_at').defaultNow().notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

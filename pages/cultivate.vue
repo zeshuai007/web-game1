@@ -65,6 +65,24 @@
                 <div class="text-gold-400 font-bold">{{ c.lingshiRate }}/分钟</div>
               </div>
             </div>
+            <div v-if="earlyStageBuffVisible" class="bg-jade-950/30 border border-jade-700/40 rounded-lg p-3 text-left text-xs space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-jade-300 font-bold">前期加成</span>
+                <span class="text-ink-400">{{ earlyStageBuffLabel }}</span>
+              </div>
+              <div class="text-ink-300">灵气上限 {{ formatNumber(earlyStageConfig.lingqiCap) }}，灵气速率 {{ formatNumber(earlyStageConfig.lingqiRate) }}/分钟</div>
+              <div class="text-ink-400">失败保留 {{ Math.round((earlyStageConfig.progressRetainRate || 0) * 100) }}% 进度，连败保底 +{{ Math.round((earlyStageConfig.pityChanceStep || 0) * 100) }}%/次，上限 +{{ Math.round((earlyStageConfig.pityChanceMax || 0) * 100) }}%</div>
+            </div>
+            <div v-if="showPitySummary" class="bg-ink-800/40 border border-gold-700/30 rounded-lg p-3 text-left text-xs space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-gold-300 font-bold">突破保底</span>
+                <span class="text-ink-400">连败 {{ c.breakthroughFailureCount || 0 }} 次</span>
+              </div>
+              <div class="text-ink-300">当前保底加成 +{{ Math.round(currentPityBonus * 100) }}%，当前突破概率 {{ Math.round(effectiveBreakthroughChance * 100) }}%</div>
+              <div class="h-2 rounded-full bg-ink-950 overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-jade-700 to-gold-500 transition-all duration-300" :style="{ width: pityProgressPercent + '%' }"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Breakthrough Button -->
@@ -176,6 +194,10 @@
       :current-realm-label="realmLabel"
       :next-realm-label="nextRealmLabel"
       :base-chance="baseChance"
+      :effective-chance="effectiveBreakthroughChance"
+      :pity-bonus="currentPityBonus"
+      :failure-count="c?.breakthroughFailureCount || 0"
+      :pity-chance-max="earlyStageConfig?.pityChanceMax || 0"
       :has-pill-in-inventory="hasBreakthroughPill"
       :result="breakthroughResult"
       @close="showBreakthrough = false; breakthroughResult = null"
@@ -338,6 +360,34 @@ const baseChance = computed(() => {
   return r?.breakthroughChance || 0.15
 })
 
+const earlyStageConfig = computed(() => {
+  if (!gameConfig.value?.realms || !c.value?.realm) return null
+  return gameConfig.value.realms.find((r) => r.key === c.value.realm) || null
+})
+
+const earlyStageBuffVisible = computed(() => {
+  return !!earlyStageConfig.value?.progressRetainRate
+})
+
+const earlyStageBuffLabel = computed(() => {
+  if (!c.value?.realm) return ''
+  return c.value.realm === 'condensing_qi' ? '凝气期加速中' : '筑基期加速中'
+})
+
+const currentPityBonus = computed(() => {
+  if (!earlyStageConfig.value?.pityChanceStep || !earlyStageConfig.value?.pityChanceMax || !c.value) return 0
+  return Math.min((c.value.breakthroughFailureCount || 0) * earlyStageConfig.value.pityChanceStep, earlyStageConfig.value.pityChanceMax)
+})
+
+const effectiveBreakthroughChance = computed(() => Math.min(baseChance.value + currentPityBonus.value, 0.9))
+
+const pityProgressPercent = computed(() => {
+  if (!earlyStageConfig.value?.pityChanceMax) return 0
+  return Math.min((currentPityBonus.value / earlyStageConfig.value.pityChanceMax) * 100, 100)
+})
+
+const showPitySummary = computed(() => !!earlyStageConfig.value?.pityChanceMax)
+
 // Inventory
 const inventory = ref([])
 const isInRealmBreakthrough = computed(() => {
@@ -386,6 +436,8 @@ async function attemptBreakthrough(usePill) {
       await auth.fetchMe()
       await fetchInventory()
       gameLog.sync()
+    } else if (auth.character.value) {
+      auth.character.value = res.character
     }
   } catch (e) {
     gameLog.addEvent('突破失败：' + (e.data?.message || e.message || '未知错误'))

@@ -16,9 +16,26 @@
             <span class="text-ink-300">基础突破概率</span>
             <span class="text-gold-400 font-bold">{{ (baseChance * 100).toFixed(0) }}%</span>
           </div>
+          <div v-if="pityBonus > 0" class="flex justify-between items-center mt-2">
+            <span class="text-ink-300">连败保底加成</span>
+            <span class="text-jade-400 font-bold">+{{ (pityBonus * 100).toFixed(0) }}%</span>
+          </div>
+          <div v-if="showPityProgress" class="mt-3">
+            <div class="flex justify-between items-center text-xs text-ink-400 mb-1">
+              <span>连败 {{ failureCount }} 次</span>
+              <span>保底进度 {{ pityProgressPercent }}%</span>
+            </div>
+            <div class="h-2 rounded-full bg-ink-950 overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-jade-700 to-gold-500 transition-all duration-300" :style="{ width: pityProgressPercent + '%' }"></div>
+            </div>
+          </div>
+          <div class="flex justify-between items-center mt-2">
+            <span class="text-ink-300">当前突破概率</span>
+            <span class="text-gold-300 font-bold">{{ (effectiveChance * 100).toFixed(0) }}%</span>
+          </div>
           <div v-if="hasPillInInventory" class="flex justify-between items-center mt-2">
             <span class="text-ink-300">使用破境丹</span>
-            <span class="text-jade-400 text-sm">+20% → {{ Math.min(baseChance + 0.2, 0.9) * 100 }}%</span>
+            <span class="text-jade-400 text-sm">+20% → {{ (pillEffectiveChance * 100).toFixed(0) }}%</span>
           </div>
         </div>
 
@@ -53,14 +70,25 @@
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   show: Boolean,
   currentRealmLabel: String,
   nextRealmLabel: String,
   baseChance: { type: Number, default: 0.3 },
+  effectiveChance: { type: Number, default: 0.3 },
+  pityBonus: { type: Number, default: 0 },
+  failureCount: { type: Number, default: 0 },
+  pityChanceMax: { type: Number, default: 0 },
   hasPillInInventory: Boolean,
   result: Object,
 })
 
 defineEmits(['close', 'attempt', 'goAlchemy'])
+
+const showPityProgress = computed(() => props.pityChanceMax > 0)
+const pityProgressPercent = computed(() => {
+  if (!props.pityChanceMax) return 0
+  return Math.min((props.pityBonus / props.pityChanceMax) * 100, 100)
+})
+const pillEffectiveChance = computed(() => Math.min(props.effectiveChance + 0.2, 0.9))
 </script>
