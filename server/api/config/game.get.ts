@@ -1,12 +1,13 @@
 import { sql } from 'drizzle-orm'
 import { configRealms, configShopItems, configForgeRecipes, configAlchemyRecipes, configAchievementDefs, configMaterialNames } from '../../db/schema'
+import { realmConfigs, breakthroughBaseChance } from '../../utils/game-engine'
 
 export default defineEventHandler(async () => {
   const db = useDB()
 
   // Auto-seed if config tables are empty (fresh database)
   const [result] = await db.select({ count: sql`count(*)` }).from(configRealms)
-  if (parseInt(String(result?.count || '0')) === 0) {
+  if (parseInt(String(result?.count || '0')) === 0 || await shouldSyncRealmConfig(db)) {
     const { seedConfig } = await import('../../db/seed')
     await seedConfig(db)
   }
@@ -38,3 +39,35 @@ export default defineEventHandler(async () => {
     materialNames,
   }
 })
+
+async function shouldSyncRealmConfig(db: ReturnType<typeof useDB>) {
+  const rows = await db.select().from(configRealms)
+  for (const row of rows) {
+    const expected = realmConfigs[row.key as keyof typeof realmConfigs]
+    if (!expected) continue
+
+    const nextChanceKey = Object.keys(breakthroughBaseChance).find((key) => key.startsWith(`${row.key}→`))
+    const expectedChance = nextChanceKey ? breakthroughBaseChance[nextChanceKey] : 0
+
+    if (
+      parseFloat(row.lingqiCap) !== expected.lingqiCap ||
+      parseFloat(row.lingshiRate) !== expected.lingshiRate ||
+      parseFloat(row.lingqiRate) !== expected.lingqiRate ||
+      parseFloat(row.breakthroughChance) !== expectedChance ||
+      normalizeDecimal(row.progressRetainRate) !== normalizeNumber(expected.progressRetainRate) ||
+      normalizeDecimal(row.pityChanceStep) !== normalizeNumber(expected.pityChanceStep) ||
+      normalizeDecimal(row.pityChanceMax) !== normalizeNumber(expected.pityChanceMax)
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
+function normalizeDecimal(value: string | null) {
+  return value == null ? null : parseFloat(value)
+}
+
+function normalizeNumber(value: number | undefined) {
+  return value == null ? null : value
+}

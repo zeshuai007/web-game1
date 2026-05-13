@@ -145,6 +145,54 @@ describe('Cultivation API', () => {
     expect(coreFormation.progressRetainRate).toBeNull()
   })
 
+  it('GET /api/config/game - syncs outdated realm rows to latest early-stage tuning', async () => {
+    const patchRes = await fetch(`${BASE}/api/test/config-realms`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        realms: [
+          {
+            key: 'condensing_qi',
+            lingqiCap: 1000,
+            lingshiRate: 10,
+            lingqiRate: 10,
+            breakthroughChance: 0.5,
+            progressRetainRate: null,
+            pityChanceStep: null,
+            pityChanceMax: null,
+          },
+          {
+            key: 'foundation',
+            lingqiCap: 5000,
+            lingshiRate: 30,
+            lingqiRate: 30,
+            breakthroughChance: 0.4,
+            progressRetainRate: null,
+            pityChanceStep: null,
+            pityChanceMax: null,
+          },
+        ],
+      }),
+    })
+    expect(patchRes.status).toBe(200)
+
+    const res = await fetch(`${BASE}/api/config/game`)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+
+    const condensingQi = body.realms.find((realm: any) => realm.key === 'condensing_qi')
+    const foundation = body.realms.find((realm: any) => realm.key === 'foundation')
+
+    expect(condensingQi.lingqiCap).toBe(150)
+    expect(condensingQi.breakthroughChance).toBe(0.6)
+    expect(condensingQi.progressRetainRate).toBe(0.5)
+    expect(foundation.lingqiCap).toBe(450)
+    expect(foundation.breakthroughChance).toBe(0.5)
+  })
+
   it('POST /api/cultivate/breakthrough - fails when lingqi not full', async () => {
     const res = await fetch(`${BASE}/api/cultivate/breakthrough`, {
       method: 'POST',

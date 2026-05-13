@@ -15,7 +15,21 @@ export async function seedConfig(db: any) {
       pityChanceStep: cfg.pityChanceStep != null ? String(cfg.pityChanceStep) : null,
       pityChanceMax: cfg.pityChanceMax != null ? String(cfg.pityChanceMax) : null,
       sortOrder: i,
-    }).onConflictDoNothing()
+    }).onConflictDoUpdate({
+      target: configRealms.key,
+      set: {
+        label: cfg.label,
+        lingqiCap: String(cfg.lingqiCap),
+        lingshiRate: String(cfg.lingshiRate),
+        lingqiRate: String(cfg.lingqiRate),
+        breakthroughChance: chanceStr,
+        maxLayer: getMaxLayer(key),
+        progressRetainRate: cfg.progressRetainRate != null ? String(cfg.progressRetainRate) : null,
+        pityChanceStep: cfg.pityChanceStep != null ? String(cfg.pityChanceStep) : null,
+        pityChanceMax: cfg.pityChanceMax != null ? String(cfg.pityChanceMax) : null,
+        sortOrder: i,
+      },
+    })
   }
 
   const shopData = [
