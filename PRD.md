@@ -223,12 +223,141 @@
 - `npm test` — 全量测试
 - `npm run test:e2e` — Playwright E2E 测试（需 dev server 运行）
 
-## Out of Scope
+## 当前阶段：聊天系统
 
-- 实时通信（WebSocket），当前使用轮询（15秒间隔）
+### Problem Statement
+
+玩家在修炼页面右侧栏只能看到单向的修炼日志（离线收益、突破结果、签到信息），缺乏玩家间互动。BBS 江湖类游戏的灵魂在于世界公屏聊天和私聊，当前的修炼日志无法承载社交需求，也无法让玩家感受到其他修行者的存在。
+
+### Solution
+
+引入实时聊天系统，将修炼日志中的关键事件（大境界突破）转化为全服广播融入世界频道，新增私聊功能支持离线消息。通过 Pusher 实时通道实现低延迟消息推送，继续使用 Vercel Serverless Functions 免费部署。
+
+### User Stories
+
+1. As a 玩家, I want to 在修炼页面看到世界频道公屏聊天，以便感受到其他修行者的存在
+2. As a 玩家, I want to 在世界频道发送消息，以便与其他玩家交流互动
+3. As a 玩家, I want to 看到自己的大境界突破自动广播到世界频道，以便分享成就获得祝贺
+4. As a 玩家, I want to 看到其他玩家的大境界突破广播，以便感知全服动态
+5. As a 玩家, I want to 看到当前在线玩家数量，以便了解服务器活跃度
+6. As a 玩家, I want to 在右下角打开私聊浮动窗口，以便与其他玩家私下交流
+7. As a 玩家, I want to 私聊消息在离线时保存，上线后可以查看，以便不漏掉重要信息
+8. As a 玩家, I want to 收到新的私聊时有未读提醒，以便及时回复
+9. As a 玩家, I want to 翻看与某个玩家的历史私聊记录，以便回顾之前的对话
+10. As a 玩家, I want to 世界频道发言有境界限制，以便防止小号刷广告
+11. As a 玩家, I want to 世界消息不被持久化，刷新即清空，以便保持江湖"喊话"的感觉
+12. As a 玩家, I want to 修炼日志的系统事件不再占用独立面板，以便布局更紧凑
+13. As a 玩家, I want to 世界频道和私聊在同一区域用 Tab 切换，以便操作便捷
+14. As a 玩家, I want to 私有聊天窗口可最小化、可关闭，以便不干扰修炼操作
+15. As a 玩家, I want to 聊天在断线后自动重连，以便网络波动不影响体验
+16. As a 开发者, I want to 世界消息不落库减少存储压力，以便维持免费部署
+17. As a 开发者, I want to 聊天模块与现有游戏轮询分离，以便互不影响
+
+### Implementation Decisions
+
+#### 实时通信方案
+
+- 选用 Pusher Channels（免费额度：200k 消息/天、100 并发连接）作为实时通信基础设施
+- Vercel Serverless Functions 不支持 WebSocket 长连接，Pusher 是唯一无需迁移部署平台和数据库的方案
+- 其他被拒绝方案：Nitro 原生 WebSocket（Vercel 不支持）、Supabase Realtime（需迁移数据库）、SSE（双向支持弱）
+- 详见 ADR `docs/adr/0001-pusher-realtime.md`
+
+#### Pusher 频道设计
+
+- `presence-world`：世界频道，Presence 类型，自动统计在线人数
+- `private-user-{characterId}`：私聊频道，Private 类型，只推送给特定用户
+- Pusher 认证通过 `POST /api/pusher/auth` 端点，JWT 验证身份后返回签名
+
+#### 聊天数据模型
+
+- 世界频道消息**不持久化**，纯实时广播，前端最多缓存 200 条
+- 私聊消息**持久化**到 `chat_messages` 表（from_character_id, to_character_id, content, created_at）
+- 私聊不标记已读，通过 `GET /api/chat/unread` 返回未读消息数量和发送者列表
+- 私聊历史分页拉取，游标方式，每次 50 条
+
+#### 消息格式
+
+世界频道消息和系统广播共用同一频道，通过 `type` 字段区分：
+
+```typescript
+type ChatMessage = {
+  type: 'chat' | 'system'
+  from?: { id: string; nickname: string }
+  content: string
+  timestamp: number
+  realm?: string  // 发言时角色的境界标签，仅 chat 类型
+}
+```
+
+格式预留 `action` 类型（后续 PK/交易用），第一期不实现。
+
+#### 系统广播规则
+
+- 只广播**大境界突破**（凝气→筑基、筑基→结丹 等）到世界频道
+- 不广播：小境界突破、突破失败、签到、离线收益、炼丹结果
+- 广播以 `type: "system"` 格式发送，前端用特殊颜色和前缀「【系统】」渲染
+- 广播触发点：`POST /api/cultivate/breakthrough` 成功后调用 Pusher SDK 发送广播
+- 原有的修炼日志面板移除，其事件融入系统广播
+
+#### 发言限制
+
+- 世界频道发言需要**凝气期第 3 层**以上
+- 单条消息上限 **200 字**
+- 前端发送 CD **3 秒**，后端限制同一角色 **10 秒内最多 3 条**世界消息
+- 私聊无境界限制
+
+#### 前端模块划分
+
+| 模块 | 类型 | 职责 |
+|------|------|------|
+| `useChat()` Composable | 状态管理 | Pusher 连接生命周期、世界消息缓冲区（200 条上限）、私聊窗口状态、未读数、断线重连 |
+| WorldChat 组件 | UI | 世界频道消息列表 + 发送输入框 + 在线人数显示 + 消息自动滚动 |
+| PrivateChatWindow 组件 | UI | 浮动私聊窗口，可最小化/关闭，支持未读提醒闪烁 |
+| ChatTabContainer 组件 | UI | 修炼页面右侧的 Tab 容器（世界频道 / 私聊列表） |
+
+#### 布局方案
+
+- 修炼页面右侧栏：上 2/3 保留角色信息 + 突破面板 + 奇遇/签到（可折叠），下 1/3 嵌入 ChatTabContainer
+- 私聊浮动窗口挂在 `app.vue` 层级，全局可见，右下角堆叠
+- 断线时在聊天区域显示"连接断开，正在重连…"提示条
+
+#### API 端点新增
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/pusher/auth` | Pusher 频道认证 |
+| POST | `/api/chat/world` | 发送世界频道消息（触发 Pusher 广播） |
+| GET | `/api/chat/private/[peerId]` | 拉取私聊历史（cursor + limit=50） |
+| POST | `/api/chat/private/[peerId]` | 发送私聊消息 |
+| GET | `/api/chat/unread` | 获取未读私聊消息概况 |
+
+#### 与现有系统的关系
+
+- 游戏数据（灵气、灵石）继续使用 15 秒 HTTP 轮询，不走 Pusher
+- 好友关系和宗门关系不做联动修改，私聊对所有人开放
+- 突破结算逻辑（`server/utils/cultivation-balance.ts`）增加系统广播副作用
+
+#### 可提取的深层模块
+
+- **`server/utils/chat-engine.ts`**：纯函数模块，封装消息验证（长度、频率、境界检查），可独立单元测试
+- **`server/utils/pusher.ts`**：Pusher 频道管理抽象，封装认证签名和消息发布接口
+
+### Testing Decisions
+
+- 好的测试只验证外部行为，不验证 Pusher 内部实现细节
+- 单元测试（`tests/unit/chat-engine.test.ts`）：消息验证、限流逻辑、境界检查等纯函数
+- 集成测试（`tests/integration/chat.test.ts`）：Pusher 认证端点、私聊发送/拉取 API、世界发言 API（mock Pusher SDK）
+- Pusher 实时推送部分需 mock，不做端到端 Pusher 连接测试
+- 现有 Vitest 集成测试风格作为先例（`tests/integration/api.test.ts`）
+
+### Out of Scope
+
+- PK 对战系统（消息格式预留 `action` 类型）
+- 交易系统
+- 宗门频道和好友频道
 - 第三方登录
 - 全服活动系统
-- 聊天系统
+- 修炼日志作为独立面板（已融入世界频道系统广播）
 - E2E 测试 CI 自动化集成
 
 ## Further Notes

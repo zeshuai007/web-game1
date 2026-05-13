@@ -269,3 +269,21 @@ export const alchemyRecords = pgTable('alchemy_records', {
   quantity: integer('quantity').notNull().default(1),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
+
+export const chatMessages = pgTable('chat_messages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  fromCharacterId: uuid('from_character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  toCharacterId: uuid('to_character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  content: varchar('content', { length: 200 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
+export const chatReadStates = pgTable('chat_read_states', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  characterId: uuid('character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  peerCharacterId: uuid('peer_character_id').notNull().references(() => characters.id, { onDelete: 'cascade' }),
+  lastReadAt: timestamp('last_read_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  characterPeerIdx: uniqueIndex('chat_read_states_character_peer_idx').on(table.characterId, table.peerCharacterId),
+}))

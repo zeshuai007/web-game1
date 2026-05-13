@@ -2,6 +2,11 @@
   <div>
     <ClientOnly>
       <NuxtPage />
+      <div class="fixed bottom-0 right-4 z-50 flex items-end gap-3 pointer-events-none">
+        <div class="pointer-events-auto" v-for="window in chat.privateWindows" :key="window.peerId">
+          <PrivateChatWindow :window="window" />
+        </div>
+      </div>
       <template #fallback>
         <div class="min-h-screen flex items-center justify-center bg-ink-950">
           <p class="text-ink-400 animate-pulse font-title text-2xl">仙 逆</p>
@@ -12,6 +17,11 @@
 </template>
 
 <script setup>
+import { auth } from '~/composables/useAuth'
+import { useChat } from '~/composables/useChat'
+
+const chat = useChat()
+
 useHead({
   title: '仙逆 - 放置修仙',
   link: [
@@ -20,5 +30,22 @@ useHead({
   bodyAttrs: {
     class: 'bg-ink-950 text-ink-100 font-body min-h-screen',
   },
+})
+
+onMounted(async () => {
+  if (auth.isLoggedIn()) {
+    if (!auth.character.value) {
+      await auth.fetchMe()
+    }
+    await chat.connect()
+  }
+})
+
+watch(() => auth.character.value?.id, async (characterId) => {
+  if (characterId) {
+    await chat.connect()
+  } else {
+    await chat.disconnect()
+  }
 })
 </script>
