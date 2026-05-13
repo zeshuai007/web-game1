@@ -64,6 +64,12 @@ test.describe.serial('核心用户旅程', () => {
     await expect(page.locator('text=尚无道号')).toBeVisible()
   })
 
+  test('P5.1: 注册页不会因为全局私聊浮窗而崩溃', async ({ page }) => {
+    await page.goto('/register', { waitUntil: 'domcontentloaded' })
+    await expect(page.locator('text=Internal Server Error')).toHaveCount(0)
+    await expect(page.locator('button:has-text("踏上修仙路")')).toBeVisible({ timeout: 8000 })
+  })
+
   test('P6: 突破失败后保留进度并显示保底', async ({ page }) => {
     const p6Email = `e2e_p6_${Date.now()}@test.com`
 

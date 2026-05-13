@@ -3,7 +3,7 @@
     <ClientOnly>
       <NuxtPage />
       <div class="fixed bottom-0 right-4 z-50 flex items-end gap-3 pointer-events-none">
-        <div class="pointer-events-auto" v-for="window in chat.privateWindows" :key="window.peerId">
+        <div class="pointer-events-auto" v-for="window in privateWindows" :key="window.peerId">
           <PrivateChatWindow :window="window" />
         </div>
       </div>
@@ -21,6 +21,7 @@ import { auth } from '~/composables/useAuth'
 import { useChat } from '~/composables/useChat'
 
 const chat = useChat()
+const privateWindows = computed(() => chat.privateWindows.value.filter(window => !!window && !!window.peerId))
 
 useHead({
   title: '仙逆 - 放置修仙',
