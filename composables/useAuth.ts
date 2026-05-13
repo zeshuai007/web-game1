@@ -1,7 +1,7 @@
 interface Character {
   id: string; userId: string; nickname: string; realm: string
   realmLayer: number; lingqi: string; lingqiCap: string; lingshi: string
-  lingshiRate: string; lingqiRate: string; offlineStartedAt: string
+  lingshiRate: string; lingqiRate: string; breakthroughFailureCount: number; offlineStartedAt: string
 }
 
 function loadFromStorage(key: string): string | null {

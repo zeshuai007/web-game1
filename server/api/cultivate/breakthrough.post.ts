@@ -1,10 +1,11 @@
 import { eq } from 'drizzle-orm'
-import { characters, inventory, realmEnum, type Realm } from '../../db/schema'
+import { characters, inventory, configRealms, type Realm } from '../../db/schema'
 import {
-  realmConfigs, isMaxLayer, getNextRealm, getMaxLayer,
-  breakthroughRoll, getPillBreakthroughBonus, breakthroughBaseChance,
+  realmConfigs, isMaxLayer, getNextRealm,
+  breakthroughBaseChance,
 } from '../../utils/game-engine'
 import { fireAchievementCheck } from '../../utils/achievement-engine'
+import { resolveMajorBreakthrough } from '../../utils/cultivation-balance'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -16,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const char = await useCharacter(event)
 
   const currentRealm = char.realm as Realm
-  const cfg = realmConfigs[currentRealm]
+  const cfg = await getRealmConfig(db, currentRealm)
   const currentLingqi = parseFloat(char.lingqi)
 
   // Check if at cap
@@ -64,11 +65,21 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const success = breakthroughRoll(currentRealm, hasPill)
   const baseChance = breakthroughBaseChance[`${currentRealm}→${nextRealm}`] ?? 0.15
+  const roll = getBreakthroughRoll(event)
+  const pillBonus = hasPill ? 0.2 : 0
+  const breakthrough = resolveMajorBreakthrough({
+    baseChance: Math.min(baseChance + pillBonus, 0.9),
+    failureCount: char.breakthroughFailureCount,
+    lingqiCap: cfg.lingqiCap,
+    progressRetainRate: cfg.progressRetainRate ?? 0,
+    pityChanceStep: cfg.pityChanceStep ?? 0,
+    pityChanceMax: cfg.pityChanceMax ?? 0,
+    roll,
+  })
 
-  if (success) {
-    const nextCfg = realmConfigs[nextRealm]
+  if (breakthrough.success) {
+    const nextCfg = await getRealmConfig(db, nextRealm)
     const [updated] = await db.update(characters)
       .set({
         realm: nextRealm,
@@ -77,6 +88,7 @@ export default defineEventHandler(async (event) => {
         lingqiCap: String(nextCfg.lingqiCap),
         lingshiRate: String(nextCfg.lingshiRate),
         lingqiRate: String(nextCfg.lingqiRate),
+        breakthroughFailureCount: 0,
         updatedAt: new Date(),
       })
       .where(eq(characters.id, char.id))
@@ -87,12 +99,15 @@ export default defineEventHandler(async (event) => {
       success: true,
       message: `天降福缘！成功突破至${cfg.label}→${nextCfg.label}！`,
       character: updated,
+      baseChance,
+      effectiveChance: breakthrough.effectiveChance,
+      pityBonus: breakthrough.pityBonus,
     }
   } else {
-    // Failed - reset lingqi progress
     const [updated] = await db.update(characters)
       .set({
-        lingqi: '0',
+        lingqi: String(breakthrough.nextLingqi),
+        breakthroughFailureCount: breakthrough.nextFailureCount,
         updatedAt: new Date(),
       })
       .where(eq(characters.id, char.id))
@@ -103,10 +118,36 @@ export default defineEventHandler(async (event) => {
       message: '突破失败，灵气溃散，需重新积累',
       character: updated,
       baseChance,
+      effectiveChance: breakthrough.effectiveChance,
+      pityBonus: breakthrough.pityBonus,
+      nextFailureCount: breakthrough.nextFailureCount,
       hadPill: hasPill,
     }
   }
 })
+
+async function getRealmConfig(db: ReturnType<typeof useDB>, realm: Realm) {
+  const [configured] = await db.select().from(configRealms).where(eq(configRealms.key, realm)).limit(1)
+  if (!configured) return realmConfigs[realm]
+
+  return {
+    label: configured.label,
+    lingqiCap: parseFloat(configured.lingqiCap),
+    lingshiRate: parseFloat(configured.lingshiRate),
+    lingqiRate: parseFloat(configured.lingqiRate),
+    progressRetainRate: configured.progressRetainRate == null ? undefined : parseFloat(configured.progressRetainRate),
+    pityChanceStep: configured.pityChanceStep == null ? undefined : parseFloat(configured.pityChanceStep),
+    pityChanceMax: configured.pityChanceMax == null ? undefined : parseFloat(configured.pityChanceMax),
+  }
+}
+
+function getBreakthroughRoll(event: any) {
+  const forcedRoll = getHeader(event, 'x-test-breakthrough-roll')
+  if (!forcedRoll) return Math.random()
+  const parsed = Number(forcedRoll)
+  if (Number.isNaN(parsed)) return Math.random()
+  return parsed
+}
 
 function getBreakthroughPillForRealm(realm: Realm): string | null {
   const map: Record<string, string> = {

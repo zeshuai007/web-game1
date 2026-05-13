@@ -99,6 +99,7 @@ describe('Auth API', () => {
 
 describe('Cultivation API', () => {
   let token = ''
+  let characterId = ''
   const testEmail = `cult_${Date.now()}@vitest.com`
 
   beforeAll(async () => {
@@ -109,6 +110,12 @@ describe('Cultivation API', () => {
     })
     const body = await res.json()
     token = body.token
+
+    const me = await fetch(`${BASE}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const meBody = await me.json()
+    characterId = meBody.character.id
   })
 
   it('GET /api/cultivate/progress - returns character state', async () => {
@@ -120,6 +127,22 @@ describe('Cultivation API', () => {
     expect(body.character).toBeDefined()
     expect(body.character.lingqi).toBeDefined()
     expect(body.realmConfig).toBeDefined()
+  })
+
+  it('GET /api/config/game - returns early-stage breakthrough tuning for 凝气期 and 筑基期', async () => {
+    const res = await fetch(`${BASE}/api/config/game`)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+
+    const condensingQi = body.realms.find((realm: any) => realm.key === 'condensing_qi')
+    const foundation = body.realms.find((realm: any) => realm.key === 'foundation')
+    const coreFormation = body.realms.find((realm: any) => realm.key === 'core_formation')
+
+    expect(condensingQi.progressRetainRate).toBe(0.5)
+    expect(condensingQi.pityChanceStep).toBe(0.05)
+    expect(condensingQi.pityChanceMax).toBe(0.2)
+    expect(foundation.progressRetainRate).toBe(0.5)
+    expect(coreFormation.progressRetainRate).toBeNull()
   })
 
   it('POST /api/cultivate/breakthrough - fails when lingqi not full', async () => {
@@ -134,6 +157,75 @@ describe('Cultivation API', () => {
     expect(res.status).toBe(400)
     const body = await res.json()
     expect(body.message).toContain('尚未圆满')
+  })
+
+  it('POST /api/cultivate/breakthrough - 凝气期大境界失败后保留 50% 灵气并累计连败', async () => {
+    await fetch(`${BASE}/api/test/char-resource`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        characterId,
+        realm: 'condensing_qi',
+        realmLayer: 9,
+        lingqi: 150,
+        breakthroughFailureCount: 0,
+      }),
+    })
+
+    const res = await fetch(`${BASE}/api/cultivate/breakthrough`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-test-breakthrough-roll': '0.95',
+      },
+      body: JSON.stringify({ usePill: false }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(false)
+    expect(parseFloat(body.character.lingqi)).toBe(75)
+    expect(body.character.breakthroughFailureCount).toBe(1)
+    expect(body.pityBonus).toBe(0)
+  })
+
+  it('POST /api/cultivate/breakthrough - 连败保底会提高成功率并在成功后清零', async () => {
+    await fetch(`${BASE}/api/test/char-resource`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        characterId,
+        realm: 'condensing_qi',
+        realmLayer: 9,
+        lingqi: 150,
+        breakthroughFailureCount: 3,
+      }),
+    })
+
+    const res = await fetch(`${BASE}/api/cultivate/breakthrough`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'x-test-breakthrough-roll': '0.72',
+      },
+      body: JSON.stringify({ usePill: false }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.success).toBe(true)
+    expect(body.character.realm).toBe('foundation')
+    expect(body.character.breakthroughFailureCount).toBe(0)
+    expect(body.pityBonus).toBeCloseTo(0.15, 5)
+    expect(body.effectiveChance).toBeCloseTo(0.75, 5)
   })
 })
 

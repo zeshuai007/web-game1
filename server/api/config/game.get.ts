@@ -21,7 +21,16 @@ export default defineEventHandler(async () => {
   ])
 
   return {
-    realms: realms.map(r => ({ ...r, lingqiCap: parseFloat(r.lingqiCap), lingshiRate: parseFloat(r.lingshiRate), lingqiRate: parseFloat(r.lingqiRate), breakthroughChance: parseFloat(r.breakthroughChance) })),
+    realms: realms.map(r => ({
+      ...r,
+      lingqiCap: parseFloat(r.lingqiCap),
+      lingshiRate: parseFloat(r.lingshiRate),
+      lingqiRate: parseFloat(r.lingqiRate),
+      breakthroughChance: parseFloat(r.breakthroughChance),
+      progressRetainRate: r.progressRetainRate == null ? null : parseFloat(r.progressRetainRate),
+      pityChanceStep: r.pityChanceStep == null ? null : parseFloat(r.pityChanceStep),
+      pityChanceMax: r.pityChanceMax == null ? null : parseFloat(r.pityChanceMax),
+    })),
     shopItems,
     forgeRecipes: forgeRecipes.map(r => ({ ...r, materials: JSON.parse(r.materialsJson) })),
     alchemyRecipes: alchemyRecipes.map(r => ({ ...r, materials: JSON.parse(r.materialsJson) })),
