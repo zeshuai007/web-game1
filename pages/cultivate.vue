@@ -126,27 +126,15 @@
             </div>
           </div>
         </div>
+
+        <div v-if="actionFeedback" class="rounded-lg p-4 text-sm border" :class="actionTone === 'ok' ? 'bg-jade-950/30 border-jade-700/30 text-jade-200' : 'bg-blood-950/30 border-blood-700/30 text-blood-200'">
+          {{ actionFeedback }}
+        </div>
       </div>
 
-      <!-- Right: Event Log -->
+      <!-- Right: Chat -->
       <div class="lg:col-span-2">
-        <div class="bg-ink-900/70 border border-ink-700 rounded-lg p-6 h-full flex flex-col">
-          <h3 class="text-sm text-ink-400 uppercase tracking-wider mb-4">修炼日志</h3>
-
-          <div class="flex-1 space-y-2 overflow-y-auto max-h-[600px]">
-            <div v-if="gameLog.events.length === 0" class="text-ink-500 text-sm text-center py-8">
-              尚未开始修炼...
-            </div>
-            <div v-for="(event, idx) in gameLog.events" :key="idx"
-              class="text-sm text-ink-300 border-l-2 border-ink-700 pl-3 py-1 hover:border-jade-600 transition-colors">
-              {{ event }}
-            </div>
-          </div>
-
-          <div class="mt-4 text-center text-ink-500 text-xs">
-            每15秒自动同步修炼进度 · 离线收益自动结算
-          </div>
-        </div>
+        <ChatTabContainer class="min-h-[520px]" />
       </div>
     </div>
 
@@ -207,13 +195,22 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { auth } from '~/composables/useAuth'
+import { useChat } from '~/composables/useChat'
 import { useGameLoop } from '~/composables/useGameLoop'
 
 const router = useRouter()
 const gameLog = useGameLoop()
+const chat = useChat()
 const c = auth.character // top-level ref for template auto-unwrap
+const actionFeedback = ref('')
+const actionTone = ref<'ok' | 'err'>('ok')
+
+function setActionFeedback(message: string, tone: 'ok' | 'err' = 'ok') {
+  actionFeedback.value = message
+  actionTone.value = tone
+}
 
 // Sign-in state
 const signInStatus = reactive({ signedIn: false, consecutiveDays: 0 })
@@ -262,9 +259,10 @@ async function handleSignIn() {
     signInStatus.signedIn = true
     signInStatus.consecutiveDays = res.consecutiveDays
     signInReward.value = res.reward
+    setActionFeedback(`签到成功，获得 ${res.reward} 灵石`, 'ok')
     await auth.fetchMe() // refresh lingshi
   } catch (e) {
-    gameLog.addEvent('签到失败：' + (e.data?.message || e.message || '未知错误'))
+    setActionFeedback('签到失败：' + (e.data?.message || e.message || '未知错误'), 'err')
   } finally {
     signingIn.value = false
   }
@@ -292,13 +290,15 @@ async function handleAdventureChoice(choice) {
       body: { choice },
     })
     adventureResult.value = res
-    gameLog.addEvent('奇遇：' + res.message)
+    setActionFeedback('奇遇：' + res.message, 'ok')
     await auth.fetchMe()
     await fetchInventory()
   } catch (e) {
-    gameLog.addEvent('奇遇失败：' + (e.data?.message || e.message || '未知错误'))
+    setActionFeedback('奇遇失败：' + (e.data?.message || e.message || '未知错误'), 'err')
   }
 }
+
+let adventureTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   if (!auth.isLoggedIn()) {
@@ -309,9 +309,14 @@ onMounted(async () => {
   await fetchSignInStatus()
   await fetchInventory()
   await loadGameConfig()
+  await chat.connect()
   gameLog.start()
-  setInterval(checkAdventure, 30000)
+  adventureTimer = setInterval(checkAdventure, 30000)
   checkAdventure()
+})
+
+onUnmounted(() => {
+  if (adventureTimer) clearInterval(adventureTimer)
 })
 
 // Game config from API
@@ -431,8 +436,11 @@ async function attemptBreakthrough(usePill) {
       body: { usePill },
     })
     breakthroughResult.value = res
-    gameLog.addEvent(res.message)
+    setActionFeedback(res.message, res.success ? 'ok' : 'err')
     if (res.success) {
+      if (res.worldBroadcast && !chat.isRealtimeEnabled.value) {
+        chat.appendWorldMessage(res.worldBroadcast)
+      }
       await auth.fetchMe()
       await fetchInventory()
       gameLog.sync()
@@ -440,7 +448,7 @@ async function attemptBreakthrough(usePill) {
       auth.character.value = res.character
     }
   } catch (e) {
-    gameLog.addEvent('突破失败：' + (e.data?.message || e.message || '未知错误'))
+    setActionFeedback('突破失败：' + (e.data?.message || e.message || '未知错误'), 'err')
   }
 }
 

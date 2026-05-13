@@ -19,9 +19,11 @@
 
 <script setup>
 import { auth } from '~/composables/useAuth'
+import { useChat } from '~/composables/useChat'
 
 const router = useRouter()
 const route = useRoute()
+const chat = useChat()
 
 const navItems = [
   { to: '/cultivate', label: '修炼' },
@@ -34,7 +36,8 @@ const navItems = [
   { to: '/rankings', label: '排行榜' },
 ]
 
-function handleLogout() {
+async function handleLogout() {
+  await chat.disconnect()
   auth.clearAuth()
   router.push('/')
 }

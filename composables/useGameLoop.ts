@@ -1,8 +1,8 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onUnmounted } from 'vue'
+
 import { auth } from './useAuth'
 
 export function useGameLoop() {
-  const events = ref<string[]>([])
   const intervalId = ref<ReturnType<typeof setInterval> | null>(null)
   const lastUpdate = ref<number>(Date.now())
 
@@ -14,11 +14,6 @@ export function useGameLoop() {
       })
       auth.character.value = res.character
       lastUpdate.value = Date.now()
-
-      if (res.offlineEarnings && res.offlineEarnings.minutes > 0) {
-        events.value.unshift(`离线 ${Math.floor(res.offlineEarnings.minutes)} 分钟，获得灵气 ${res.offlineEarnings.lingqi.toFixed(0)}，灵石 ${res.offlineEarnings.lingshi.toFixed(0)}`)
-        if (events.value.length > 50) events.value.pop()
-      }
     } catch {
       // silent
     }
@@ -36,12 +31,7 @@ export function useGameLoop() {
     }
   }
 
-  function addEvent(msg: string) {
-    events.value.unshift(msg)
-    if (events.value.length > 50) events.value.pop()
-  }
-
   onUnmounted(() => stop())
 
-  return { events, sync, start, stop, addEvent, lastUpdate }
+  return { sync, start, stop, lastUpdate }
 }

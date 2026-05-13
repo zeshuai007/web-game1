@@ -6,6 +6,8 @@ import {
 } from '../../utils/game-engine'
 import { fireAchievementCheck } from '../../utils/achievement-engine'
 import { resolveMajorBreakthrough } from '../../utils/cultivation-balance'
+import { createSystemMessage } from '../../utils/chat-engine'
+import { publishWorldMessage } from '../../utils/pusher'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -95,6 +97,8 @@ export default defineEventHandler(async (event) => {
       .returning()
 
     fireAchievementCheck(event, 'breakthrough', nextRealm)
+    const worldBroadcast = createSystemMessage(`【系统】${char.nickname}突破至${nextCfg.label}！`)
+    await publishWorldMessage(worldBroadcast)
     return {
       success: true,
       message: `天降福缘！成功突破至${cfg.label}→${nextCfg.label}！`,
@@ -102,6 +106,7 @@ export default defineEventHandler(async (event) => {
       baseChance,
       effectiveChance: breakthrough.effectiveChance,
       pityBonus: breakthrough.pityBonus,
+      worldBroadcast,
     }
   } else {
     const [updated] = await db.update(characters)
