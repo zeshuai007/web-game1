@@ -20,7 +20,7 @@
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div v-for="recipe in recipes" :key="recipe.id" class="bg-ink-900/70 border border-ink-700 rounded-lg p-4 hover:border-jade-600/50 transition-colors">
           <h3 class="font-bold text-gold-300 mb-1">{{ recipe.name }}</h3>
-          <p class="text-xs text-ink-400 mb-2">栏位：{{ (slotNames as Record<string, string>)[recipe.slot] || recipe.slot }}</p>
+          <p class="text-xs text-ink-400 mb-2">栏位：{{ slotNames[recipe.slot] || recipe.slot }}</p>
           <div class="space-y-1 mb-3 text-sm">
             <div v-for="m in recipe.materials" :key="m.id" class="flex justify-between text-ink-400">
               <span>{{ materialLabel(m.id) }}</span>
@@ -45,7 +45,7 @@
         <div v-for="eqp in equipList" :key="eqp.id" class="flex items-center justify-between bg-ink-800/50 rounded p-3 mb-2">
           <div>
             <span class="text-sm font-bold" :class="eqp.qualityColor || 'text-ink-200'">{{ eqp.name }}</span>
-            <span class="text-xs text-ink-400 ml-2">{{ (slotNames as Record<string, string>)[eqp.slot] || eqp.slot }}</span>
+            <span class="text-xs text-ink-400 ml-2">{{ slotNames[eqp.slot] || eqp.slot }}</span>
             <div class="text-xs text-ink-500 mt-0.5">
               <span v-if="parseFloat(eqp.bonusLingqiRate) > 0">灵气+{{ (parseFloat(eqp.bonusLingqiRate)*100).toFixed(0) }}% </span>
               <span v-if="parseFloat(eqp.bonusLingshiRate) > 0">灵石+{{ (parseFloat(eqp.bonusLingshiRate)*100).toFixed(0) }}%</span>
@@ -75,7 +75,7 @@ const loading = ref(true)
 const message = ref('')
 const msgType = ref('ok')
 
-const slotNames = ref({} as Record<string, string>)
+const slotNames = ref({})
 const configMaterialNames = ref({})
 
 async function loadConfig() {
