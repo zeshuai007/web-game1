@@ -1,12 +1,20 @@
 import { eq } from 'drizzle-orm'
-import { characters, inventory, type PillType } from '../db/schema'
-import { pillNames, materialNames } from '../utils/game-engine'
+import { characters, inventory, configMaterialNames, configAlchemyRecipes } from '../db/schema'
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.userId
   const db = useDB()
 
   const char = await useCharacter(event)
+
+  // Fetch name mappings from DB
+  const [matRows, pillRows] = await Promise.all([
+    db.select().from(configMaterialNames),
+    db.select().from(configAlchemyRecipes),
+  ])
+  const materialNameMap: Record<string, string> = {}
+  for (const row of matRows) materialNameMap[row.itemId] = row.name
+  const pillNameMap: Record<string, string> = {}
+  for (const row of pillRows) pillNameMap[row.pillId] = row.name
 
   const items = await db.select()
     .from(inventory)
@@ -15,8 +23,8 @@ export default defineEventHandler(async (event) => {
   const mapped = items.map(item => ({
     ...item,
     name: item.itemType === 'pill'
-      ? (pillNames[item.itemId] || item.itemId)
-      : (materialNames[item.itemId] || item.itemId),
+      ? (pillNameMap[item.itemId] || item.itemId)
+      : (materialNameMap[item.itemId] || item.itemId),
   }))
 
   return { items: mapped }

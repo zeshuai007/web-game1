@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-ink-950">
+  <div class="min-h-screen flex flex-col bg-friends-bg bg-cover bg-center">
+    <div class="fixed inset-0 bg-ink-950/70 -z-10"></div>
     <GameHeader />
     <div class="flex-1 max-w-4xl w-full mx-auto px-4 py-6 space-y-6">
       <h2 class="font-title text-2xl text-gold-400 text-center tracking-wider">好 友</h2>

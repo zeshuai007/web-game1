@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { characters, inventory, equipment, configForgeRecipes } from '../../db/schema'
-import { rollQuality, calcQualityBonuses, qualityNames } from '../../utils/game-engine'
+import { getQualityConfigFromDB, rollQualityWithConfig, calcQualityBonusesWithConfig } from '../../utils/config'
 import { fireAchievementCheck } from '../../utils/achievement-engine'
 
 export default defineEventHandler(async (event) => {
@@ -26,9 +26,10 @@ export default defineEventHandler(async (event) => {
 
   await db.update(characters).set({ lingshi: String(lingshi - recipe.cost) }).where(eq(characters.id, char.id))
 
-  const quality = rollQuality()
-  const bonuses = calcQualityBonuses(quality)
-  const qualityName = qualityNames[quality]
+  const qualityConfig = await getQualityConfigFromDB(db)
+  const quality = rollQualityWithConfig(qualityConfig)
+  const bonuses = calcQualityBonusesWithConfig(quality, qualityConfig)
+  const qualityName = qualityConfig.find(q => q.quality === quality)?.name || '凡器'
 
   const [eqp] = await db.insert(equipment).values({
     characterId: char.id, slot: recipe.slot, name: `${qualityName}${recipe.name}`,

@@ -1,5 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { characters, clans, clanMembers, clanTasks, clanTaskProgress } from '../../db/schema'
+import { getClanLevelsFromDB } from '../../utils/config'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -29,9 +30,10 @@ export default defineEventHandler(async (event) => {
   const [clan] = await db.select().from(clans).where(eq(clans.id, member.clanId)).limit(1)
   if (clan) {
     const newExp = clan.exp + task.rewardExp
-    // Check level up
-    const { clanLevelExp } = await import('../../utils/game-engine')
-    const nextLevelExp = clanLevelExp[clan.level] || 999999
+    // Check level up using DB config
+    const clanLevels = await getClanLevelsFromDB(db)
+    const nextLevelConfig = clanLevels.find(l => l.level === clan.level)
+    const nextLevelExp = nextLevelConfig ? nextLevelConfig.expRequired : 999999
     if (newExp >= nextLevelExp && clan.level < 10) {
       await db.update(clans).set({ exp: newExp - nextLevelExp, level: clan.level + 1 }).where(eq(clans.id, clan.id))
     } else {

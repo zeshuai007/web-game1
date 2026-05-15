@@ -1,25 +1,25 @@
 import { eq } from 'drizzle-orm'
-import { characters, inventory, configRealms, type Realm } from '../../db/schema'
-import {
-  realmConfigs, isMaxLayer, getNextRealm,
-  breakthroughBaseChance,
-} from '../../utils/game-engine'
+import { characters, inventory, type Realm } from '../../db/schema'
+import { isMaxLayer, getNextRealm } from '../../utils/realm-config'
+import { getRealmFromDB, getBreakthroughChanceFromDB } from '../../utils/config'
 import { fireAchievementCheck } from '../../utils/achievement-engine'
 import { resolveMajorBreakthrough } from '../../utils/cultivation-balance'
 import { createSystemMessage } from '../../utils/chat-engine'
 import { publishWorldMessage } from '../../utils/pusher'
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.userId
   const body = await readBody(event)
   const usePill = !!body?.usePill
 
   const db = useDB()
-
   const char = await useCharacter(event)
 
   const currentRealm = char.realm as Realm
-  const cfg = await getRealmConfig(db, currentRealm)
+  const cfg = await getRealmFromDB(db, currentRealm)
+  if (!cfg) {
+    throw createError({ statusCode: 500, message: '境界配置不存在' })
+  }
+
   const currentLingqi = parseFloat(char.lingqi)
 
   // Check if at cap
@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const baseChance = breakthroughBaseChance[`${currentRealm}→${nextRealm}`] ?? 0.15
+  const baseChance = await getBreakthroughChanceFromDB(db, currentRealm)
   const roll = getBreakthroughRoll(event)
   const pillBonus = hasPill ? 0.2 : 0
   const breakthrough = resolveMajorBreakthrough({
@@ -81,7 +81,11 @@ export default defineEventHandler(async (event) => {
   })
 
   if (breakthrough.success) {
-    const nextCfg = await getRealmConfig(db, nextRealm)
+    const nextCfg = await getRealmFromDB(db, nextRealm)
+    if (!nextCfg) {
+      throw createError({ statusCode: 500, message: '下一境界配置不存在' })
+    }
+
     const [updated] = await db.update(characters)
       .set({
         realm: nextRealm,
@@ -130,21 +134,6 @@ export default defineEventHandler(async (event) => {
     }
   }
 })
-
-async function getRealmConfig(db: ReturnType<typeof useDB>, realm: Realm) {
-  const [configured] = await db.select().from(configRealms).where(eq(configRealms.key, realm)).limit(1)
-  if (!configured) return realmConfigs[realm]
-
-  return {
-    label: configured.label,
-    lingqiCap: parseFloat(configured.lingqiCap),
-    lingshiRate: parseFloat(configured.lingshiRate),
-    lingqiRate: parseFloat(configured.lingqiRate),
-    progressRetainRate: configured.progressRetainRate == null ? undefined : parseFloat(configured.progressRetainRate),
-    pityChanceStep: configured.pityChanceStep == null ? undefined : parseFloat(configured.pityChanceStep),
-    pityChanceMax: configured.pityChanceMax == null ? undefined : parseFloat(configured.pityChanceMax),
-  }
-}
 
 function getBreakthroughRoll(event: any) {
   const forcedRoll = getHeader(event, 'x-test-breakthrough-roll')

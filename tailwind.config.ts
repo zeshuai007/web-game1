@@ -82,6 +82,10 @@ export default <Config>{
         'realm-deity': "url('/images/backgrounds/realms/realm-5-deity.webp')",
         'realm-nascent-trans': "url('/images/backgrounds/realms/realm-6-nascent-trans.webp')",
         'realm-seeking': "url('/images/backgrounds/realms/realm-7-seeking.webp')",
+        'clan-bg': "url('/images/backgrounds/clan-bg.webp')",
+        'achievements-bg': "url('/images/backgrounds/achievements-bg.webp')",
+        'forge-bg': "url('/images/backgrounds/forge-bg.webp')",
+        'friends-bg': "url('/images/backgrounds/friends-bg.webp')",
       },
       animation: {
         'pulse-soft': 'pulse-soft 3s ease-in-out infinite',

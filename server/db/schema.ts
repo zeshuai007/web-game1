@@ -52,6 +52,7 @@ export const configAchievementDefs = pgTable('config_achievement_defs', {
   conditionValue: integer('condition_value').notNull().default(0),
   rewardType: varchar('reward_type', { length: 50 }).notNull().default('lingshi'),
   rewardValue: integer('reward_value').notNull().default(0),
+  materialRewardsJson: varchar('material_rewards_json', { length: 500 }),
   sortOrder: integer('sort_order').notNull().default(0),
 })
 
@@ -287,3 +288,41 @@ export const chatReadStates = pgTable('chat_read_states', {
 }, (table) => ({
   characterPeerIdx: uniqueIndex('chat_read_states_character_peer_idx').on(table.characterId, table.peerCharacterId),
 }))
+
+// ─── Adventure event config ────────────────────────────────────
+export const configAdventureEvents = pgTable('config_adventure_events', {
+  eventType: varchar('event_type', { length: 50 }).primaryKey(),
+  title: varchar('title', { length: 100 }).notNull(),
+  description: varchar('description', { length: 500 }).notNull(),
+  choicesJson: varchar('choices_json', { length: 1000 }).notNull(),
+  rewardsJson: varchar('rewards_json', { length: 1000 }).notNull(),
+  baseChance: decimal('base_chance', { precision: 4, scale: 2 }).notNull(),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+// ─── Clan level / daily-task config ────────────────────────────
+export const configClanLevels = pgTable('config_clan_levels', {
+  level: integer('level').primaryKey(),
+  expRequired: integer('exp_required').notNull(),
+  bonusRate: decimal('bonus_rate', { precision: 4, scale: 2 }).notNull(),
+})
+
+export const configClanDailyTasks = pgTable('config_clan_daily_tasks', {
+  id: varchar('id', { length: 50 }).primaryKey(),
+  taskType: varchar('task_type', { length: 50 }).notNull(),
+  title: varchar('title', { length: 100 }).notNull(),
+  description: varchar('description', { length: 500 }).notNull(),
+  targetCount: integer('target_count').notNull().default(1),
+  rewardExp: integer('reward_exp').notNull().default(10),
+  rewardContribution: integer('reward_contribution').notNull().default(10),
+  sortOrder: integer('sort_order').notNull().default(0),
+})
+
+// ─── Quality config (forge equipment quality tiers) ────────────
+export const configQuality = pgTable('config_quality', {
+  quality: integer('quality').primaryKey(),
+  name: varchar('name', { length: 50 }).notNull(),
+  color: varchar('color', { length: 50 }).notNull(),
+  rollThreshold: decimal('roll_threshold', { precision: 4, scale: 2 }).notNull(),
+  bonusRate: decimal('bonus_rate', { precision: 4, scale: 2 }).notNull(),
+})

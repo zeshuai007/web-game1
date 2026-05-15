@@ -1,12 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { characters, equipment } from '../../db/schema'
-import { qualityNames, qualityColors } from '../../utils/game-engine'
+import { getQualityConfigFromDB } from '../../utils/config'
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.userId
   const db = useDB()
 
   const char = await useCharacter(event)
+
+  const qualityConfig = await getQualityConfigFromDB(db)
 
   const items = await db.select()
     .from(equipment)
@@ -14,10 +15,13 @@ export default defineEventHandler(async (event) => {
     .orderBy(equipment.createdAt)
 
   return {
-    items: items.map(i => ({
-      ...i,
-      qualityName: qualityNames[i.quality] || '未知',
-      qualityColor: qualityColors[i.quality] || 'text-ink-300',
-    })),
+    items: items.map(i => {
+      const tier = qualityConfig.find(q => q.quality === i.quality)
+      return {
+        ...i,
+        qualityName: tier?.name || '未知',
+        qualityColor: tier?.color || 'text-ink-300',
+      }
+    }),
   }
 })

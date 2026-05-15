@@ -1,9 +1,8 @@
 import { eq, and } from 'drizzle-orm'
-import { characters, inventory, adventureEvents as adventureTable } from '../../db/schema'
-import { adventureEvents, materialNames } from '../../utils/game-engine'
+import { characters, inventory, adventureEvents as adventureTable, configMaterialNames } from '../../db/schema'
+import { getAdventureEventsFromDB } from '../../utils/config'
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.userId
   const body = await readBody(event)
   const { choice } = body || {}
   const db = useDB()
@@ -22,13 +21,19 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: '没有待处理的奇遇事件' })
   }
 
-  const eventDef = adventureEvents.find(e => e.type === pending.eventType)
+  const events = await getAdventureEventsFromDB(db)
+  const eventDef = events.find(e => e.type === pending.eventType)
   if (!eventDef) {
     throw createError({ statusCode: 400, message: '未知的事件类型' })
   }
 
   const chosenIndex = choice ?? 0
   const chosenReward = eventDef.rewards[Math.min(chosenIndex, eventDef.rewards.length - 1)]
+
+  // Fetch material name map from DB
+  const matRows = await db.select().from(configMaterialNames)
+  const nameMap: Record<string, string> = {}
+  for (const row of matRows) nameMap[row.itemId] = row.name
 
   // Apply reward
   let rewardMsg = ''
@@ -48,6 +53,7 @@ export default defineEventHandler(async (event) => {
     rewardMsg = '下次突破概率略微提升（心魔试炼的感悟）'
   } else if (chosenReward.type.startsWith('material_')) {
     const materialId = chosenReward.type.replace('material_', '')
+    const matName = nameMap[materialId] || materialId
     const [existing] = await db.select()
       .from(inventory)
       .where(and(eq(inventory.characterId, char.id), eq(inventory.itemId, materialId)))
@@ -57,7 +63,7 @@ export default defineEventHandler(async (event) => {
     } else {
       await db.insert(inventory).values({ characterId: char.id, itemType: 'material', itemId: materialId, quantity: chosenReward.value })
     }
-    rewardMsg = `获得 ${materialNames[materialId] || materialId} ×${chosenReward.value}`
+    rewardMsg = `获得 ${matName} ×${chosenReward.value}`
   }
 
   // Mark resolved
