@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { characters, adventureEvents as adventureTable, type Realm } from '../../db/schema'
-import { rollAdventureEvent } from '../../utils/game-engine'
+import { getAdventureEventsFromDB, rollAdventureEventWithConfig } from '../../utils/config'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -22,19 +22,25 @@ export default defineEventHandler(async (event) => {
   }
 
   // Try to trigger a random event
-  const triggered = rollAdventureEvent(char.realm as Realm)
+  const events = await getAdventureEventsFromDB(db)
+  const triggered = rollAdventureEventWithConfig(events, char.realm as Realm)
   if (!triggered) {
     return { event: null }
   }
 
-  const choices = triggered.choices.map((c, i) => ({ index: i, label: c.label, desc: c.desc }))
+  const eventDef = events.find(e => e.type === triggered.type)
+  if (!eventDef) {
+    return { event: null }
+  }
+
+  const choices = eventDef.choices.map((c, i) => ({ index: i, label: c.label, desc: c.desc }))
 
   const [record] = await db.insert(adventureTable).values({
     characterId: char.id,
     eventType: triggered.type,
-    eventData: JSON.stringify({ title: triggered.title, description: triggered.description, choices }),
+    eventData: JSON.stringify({ title: eventDef.title, description: eventDef.description, choices }),
     state: 'pending',
   }).returning()
 
-  return { event: { id: record.id, type: triggered.type, data: { title: triggered.title, description: triggered.description, choices }, state: 'pending' } }
+  return { event: { id: record.id, type: triggered.type, data: { title: eventDef.title, description: eventDef.description, choices }, state: 'pending' } }
 })

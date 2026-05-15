@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { characters, daoRecords, friendRequests, type Realm } from '../../db/schema'
-import { realmConfigs, realmEnum } from '../../utils/game-engine'
+import { realmEnum } from '../../utils/realm-config'
 import { fireAchievementCheck } from '../../utils/achievement-engine'
 
 export default defineEventHandler(async (event) => {

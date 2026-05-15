@@ -1,8 +1,8 @@
-import { eq, sql, and, inArray } from 'drizzle-orm'
+import { eq, and, inArray } from 'drizzle-orm'
 import { characters, clanMembers, clanTasks, clanTaskProgress } from '../../db/schema'
+import { getClanDailyTasksFromDB } from '../../utils/config'
 
 export default defineEventHandler(async (event) => {
-  const userId = event.context.userId
   const db = useDB()
 
   const char = await useCharacter(event)
@@ -16,9 +16,17 @@ export default defineEventHandler(async (event) => {
   let tasks = await db.select().from(clanTasks).where(eq(clanTasks.taskDate, today)).limit(4)
 
   if (tasks.length === 0) {
-    const { dailyClanTasks } = await import('../../utils/game-engine')
-    for (const t of dailyClanTasks) {
-      const [task] = await db.insert(clanTasks).values({ ...t, taskDate: today }).returning()
+    const dailyTasks = await getClanDailyTasksFromDB(db)
+    for (const t of dailyTasks) {
+      const [task] = await db.insert(clanTasks).values({
+        taskType: t.taskType,
+        title: t.title,
+        description: t.description,
+        targetCount: t.targetCount,
+        rewardExp: t.rewardExp,
+        rewardContribution: t.rewardContribution,
+        taskDate: today,
+      }).returning()
       tasks.push(task)
     }
   }

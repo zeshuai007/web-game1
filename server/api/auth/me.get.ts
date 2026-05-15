@@ -1,5 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { users, characters, configRealms } from '../../db/schema'
+import { type Realm } from '../../utils/realm-config'
+import { getRealmFromDB } from '../../utils/config'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -11,13 +13,13 @@ export default defineEventHandler(async (event) => {
   }
 
   const char = await useCharacter(event)
-  const [configuredRealm] = await db.select().from(configRealms).where(eq(configRealms.key, char.realm)).limit(1)
+  const cfg = await getRealmFromDB(db, char.realm as Realm)
 
   let nextChar = char
-  if (configuredRealm) {
-    const nextCap = String(parseFloat(configuredRealm.lingqiCap))
-    const nextLingqiRate = String(parseFloat(configuredRealm.lingqiRate))
-    const nextLingshiRate = String(parseFloat(configuredRealm.lingshiRate))
+  if (cfg) {
+    const nextCap = String(cfg.lingqiCap)
+    const nextLingqiRate = String(cfg.lingqiRate)
+    const nextLingshiRate = String(cfg.lingshiRate)
     if (char.lingqiCap !== nextCap || char.lingqiRate !== nextLingqiRate || char.lingshiRate !== nextLingshiRate) {
       const [updated] = await db.update(characters)
         .set({

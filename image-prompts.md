@@ -177,7 +177,54 @@ public/images/
 **English prompt:**
 > Seeking Heaven realm, a lone cultivator standing at the peak of the highest mountain, above the clouds, the vast galaxy and starry cosmos swirling overhead, feeling of transcending mortality, deep blue to gold gradient sky, sea of clouds below, the figure is small against the immense cosmos but radiates inner light, ultimate solitude and power, epic climax cinematic, 1920x1080
 
-**→ 保存为 `public/images/backgrounds/realms/realm-7-seeking.webp`**
+**→ 保存为 `public/images/backgrounds/seeking-bg.webp`**
+
+---
+
+## 🏛 5. 新增页面背景图
+
+### 5.1 宗门背景 — 仙门重地
+
+中文：宏伟的修仙宗门入口，巨大的石质山门刻有精致的龙形浮纹，背后是层叠的仙山，远处可见弟子行走的身影，云雾缭绕。暗色水墨风格，带金色和青色点缀。
+
+**English prompt:**
+> Grand entrance of a xianxia cultivation sect, massive stone gate with intricate dragon carvings, towering mountains in the background, disciples walking in distance, ethereal mist, dark ink wash style with gold and jade highlights, cinematic lighting, 1920x1080
+
+**→ 保存为 `public/images/backgrounds/clan-bg.webp`**
+
+---
+
+### 5.2 成就背景 — 仙藏宝库
+
+中文：宏伟的仙家典籍库，无数发光的玉简悬浮在虚空中，古老的书架和宝物错落有致，星光从穹顶落下。神圣而庄严，深蓝与金色调。
+
+**English prompt:**
+> Celestial archive hall, rows of glowing jade tablets floating in a cosmic void, ancient scrolls and artifacts on dark wooden shelves, starlight filtering through a glass ceiling, majestic and divine atmosphere, dark blue and gold color scheme, xianxia fantasy style, 1920x1080
+
+**→ 保存为 `public/images/backgrounds/achievements-bg.webp`**
+
+---
+
+### 5.3 炼器背景 — 灵火锻台
+
+中文：修仙界的炼器工坊，中心是发光的锻台和巨大的铁锤，石炉中燃烧着青蓝色的灵火，墙上挂着神兵利器，火星四溅。高对比度，强明暗。
+
+**English prompt:**
+> A magical blacksmith's forge in a xianxia world, center focus on a glowing anvil and a massive hammer, intense blue and orange spirit flames burning in a stone furnace, weapons and armor hanging on walls, sparks flying, high contrast, dramatic shadows, cinematic lighting, 1920x1080
+
+**→ 保存为 `public/images/backgrounds/forge-bg.webp`**
+
+---
+
+### 5.4 好友背景 — 浮空茶亭
+
+中文：浮空岛上的宁静茶亭，古色古香，石桌上摆着茶具，四周樱花盛开，脚下是翻滚的云海，远处有仙岛剪影。社交氛围，光线柔和。
+
+**English prompt:**
+> A peaceful outdoor tea pavilion on a floating mountain island, xianxia style, stone table with tea set, cherry blossom trees in bloom, overlooking a sea of clouds, distant silhouettes of other islands, serene and social atmosphere, soft sunlight, pale pink and jade-green tones, 1920x1080
+
+**→ 保存为 `public/images/backgrounds/friends-bg.webp`**
+
 
 ---
 

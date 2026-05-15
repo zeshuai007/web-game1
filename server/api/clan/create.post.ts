@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { characters, clans, clanMembers } from '../../db/schema'
-import { getClanLevelBonus } from '../../utils/game-engine'
+import { getClanLevelBonusFromDB } from '../../utils/config'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -30,5 +30,6 @@ export default defineEventHandler(async (event) => {
 
   await db.insert(clanMembers).values({ clanId: clan.id, characterId: char.id, role: 'leader' })
 
-  return { clan, bonus: getClanLevelBonus(1) }
+  const bonus = await getClanLevelBonusFromDB(db, 1)
+  return { clan, bonus }
 })

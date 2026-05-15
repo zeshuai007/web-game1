@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
-import { characters, configRealms } from '../../db/schema'
-import { realmConfigs, type Realm } from '../../utils/game-engine'
+import { characters } from '../../db/schema'
+import { type Realm } from '../../utils/realm-config'
+import { getRealmFromDB } from '../../utils/config'
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -8,15 +9,11 @@ export default defineEventHandler(async (event) => {
 
   const char = await useCharacter(event)
 
-  const [configuredRealm] = await db.select().from(configRealms).where(eq(configRealms.key, char.realm)).limit(1)
-  const cfg = configuredRealm
-    ? {
-        ...realmConfigs[char.realm as Realm],
-        lingqiCap: parseFloat(configuredRealm.lingqiCap),
-        lingshiRate: parseFloat(configuredRealm.lingshiRate),
-        lingqiRate: parseFloat(configuredRealm.lingqiRate),
-      }
-    : realmConfigs[char.realm as Realm]
+  const cfg = await getRealmFromDB(db, char.realm as Realm)
+  if (!cfg) {
+    throw createError({ statusCode: 500, message: '境界配置不存在' })
+  }
+
   const now = new Date()
 
   // Calculate offline earnings
