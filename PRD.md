@@ -116,6 +116,8 @@
 | 4 | 事务支持（drizzle API 兼容暂缓） | ⏸ |
 | 5 | game-engine 模块职责拆分 | ✅ |
 | 6 | useAuth 重构 | ✅ |
+| 7 | 全量配置迁移到 DB — 10 张配置表统一读取，删除 5 个硬编码文件 | ✅ |
+| 8 | nuxt.config 生产安全 — JWT secret 无 fallback，添加 .env.example | ✅ |
 
 ## 已完成的部署适配
 
@@ -125,22 +127,29 @@
 - ✅ Nitro Vercel preset + 构建配置
 - ⏸ 手动部署到 Vercel 控制台（待执行）
 
-## 当前阶段：游戏配置数据迁移到数据库
+## 完成的重构：游戏配置全量迁移到 DB
 
-### 问题
-大量游戏配置数据写死在前端/后端代码中，不在数据库里：境界标签、突破概率、丹药配方、商店价格、锻造配方、成就定义、材料名称。
+配置数据全面从代码硬编码迁移到数据库，所有 API 端点统一从 DB 读取配置。
+改动涉及 10 张配置表（6 张原有 + 4 张新增），删除 5 个硬编码数据文件，更新约 20 个 API 端点。
 
-### 方案
-新建 6 张配置表 → Seed 脚本初始化 → `GET /api/config/game` 统一 API → 前端 4 个文件删除硬编码 → 后端 5 个 API 端点从 DB 读取。
+### 新增 DB 配置表
+| 表 | 用途 |
+|---|---|
+| `config_adventure_events` | 奇遇事件定义 |
+| `config_clan_levels` | 宗门等级经验阈值 |
+| `config_clan_daily_tasks` | 宗门每日任务模板 |
+| `config_quality` | 锻造品质名称/颜色/概率/加成 |
 
-### Issue 跟踪
-- #31 Schema + Seed + Config API
-- #32 商店商品 + 炼丹配方迁移
-- #33 锻造配方迁移 + 修复前端不显示
-- #34 境界配置迁移 + 前端硬编码清理
-- #35 成就定义迁移到 DB
-- #36 源文件数据残留删除 + 全量回归
-- #37 修炼前期体验优化
+### 删除的硬编码文件
+- `server/utils/alchemy-data.ts` — pillNames / materialNames / alchemyRecipes
+- `server/utils/forge-data.ts` — qualityNames / qualityColors / forgeRecipes
+- `server/utils/adventure-data.ts` — adventureEvents / rollAdventureEvent
+- `server/utils/clan-data.ts` — clanLevelExp / getClanLevelBonus / dailyClanTasks
+- `server/utils/game-engine.ts` — barrel 文件
+
+### 安全改进
+- `nuxt.config.ts` — JWT secret 生产环境无 fallback，未设则抛异常
+- 添加 `.env.example`
 
 ## 当前阶段：修炼前期体验优化
 
