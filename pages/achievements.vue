@@ -10,7 +10,7 @@
         <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key"
           class="px-4 py-1.5 rounded text-sm transition-colors"
           :class="activeTab === tab.key ? 'bg-gold-700 text-white' : 'bg-ink-800 text-ink-300 hover:bg-ink-700'">
-          {{ tab.label }} ({{ counts[tab.key] || 0 }}/{{ tab.total }})
+          {{ tab.label }} ({{ counts[tab.key] || 0 }}/{{ counts[tab.key + '_total'] || 0 }})
         </button>
       </div>
 
