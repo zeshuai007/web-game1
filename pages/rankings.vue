@@ -30,7 +30,7 @@
                 <td class="py-3 px-4 text-ink-200">{{ r.nickname }}</td>
                 <td class="py-3 px-4">
                   <span class="text-jade-400">{{ r.realm }}</span>
-                  <span class="text-ink-400 text-sm"> · {{ r.realmLayer }}{{ r.realm === 'condensing_qi' ? '层' : ['初期','中期','后期'][r.realmLayer - 1] || '' }}</span>
+                  <span class="text-ink-400 text-sm"> · {{ r.realm === '凝气期' ? '第' + r.realmLayer + '层' : (['初期','中期','后期'][r.realmLayer - 1] || '') }}</span>
                 </td>
                 <td class="py-3 px-4 text-right text-ink-300">
                   {{ formatNumber(r.lingqi) }}

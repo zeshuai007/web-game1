@@ -21,6 +21,11 @@ export default defineNuxtConfig({
       pusherCluster: process.env.PUSHER_CLUSTER || 'ap1',
     },
   },
+  vite: {
+    optimizeDeps: {
+      include: ['pusher-js'],
+    },
+  },
   tailwindcss: {
     configPath: 'tailwind.config.ts',
   },

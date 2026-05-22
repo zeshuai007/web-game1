@@ -10,7 +10,7 @@
         <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key"
           class="px-4 py-1.5 rounded text-sm transition-colors"
           :class="activeTab === tab.key ? 'bg-gold-700 text-white' : 'bg-ink-800 text-ink-300 hover:bg-ink-700'">
-          {{ tab.label }} ({{ counts[tab.key] || 0 }}/{{ tab.total }})
+          {{ tab.label }} ({{ counts[tab.key] || 0 }}/{{ counts[tab.key + '_total'] || 0 }})
         </button>
       </div>
 
@@ -85,6 +85,10 @@ const filteredAchievements = computed(() => {
 
 const counts = computed(() => {
   const result = {}
+  const allCompleted = achievements.value.filter(a => a.completed).length
+  const allTotal = achievements.value.length
+  result.all = allCompleted
+  result.all_total = allTotal
   for (const tab of tabs) {
     if (tab.key === 'all') continue
     const group = achievements.value.filter(a => a.category === tab.key)
