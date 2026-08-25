@@ -1,23 +1,48 @@
 import { eq, sql } from 'drizzle-orm'
 import { configRealms, configQuality, configClanDailyTasks, configClanLevels, configAdventureEvents, realmEnum, type Realm } from '../db/schema'
 
-/** Fetch realm config from DB, with fallback to provided default */
-export async function getRealmFromDB(db: ReturnType<typeof useDB>, realm: Realm) {
-  const [row] = await db.select().from(configRealms).where(eq(configRealms.key, realm)).limit(1)
-  if (!row) return null
-  return {
-    key: row.key,
-    label: row.label,
-    lingqiCap: parseFloat(row.lingqiCap),
-    lingshiRate: parseFloat(row.lingshiRate),
-    lingqiRate: parseFloat(row.lingqiRate),
-    breakthroughChance: parseFloat(row.breakthroughChance),
-    maxLayer: row.maxLayer,
-    progressRetainRate: row.progressRetainRate == null ? undefined : parseFloat(row.progressRetainRate),
-    pityChanceStep: row.pityChanceStep == null ? undefined : parseFloat(row.pityChanceStep),
-    pityChanceMax: row.pityChanceMax == null ? undefined : parseFloat(row.pityChanceMax),
-    sortOrder: row.sortOrder,
+// ─── 进程内配置缓存（TTL）────────────────────────────────────────
+// 配置表极小且极少变化；serverless 实例复用期间命中缓存可省掉
+// 大量重复查询（Neon 冷启动/往返开销）。写入配置后调用
+// invalidateConfigCache() 立即失效。
+const configCache = new Map<string, { data: unknown; expires: number }>()
+const CONFIG_CACHE_TTL_MS = 60_000
+
+async function withCache<T>(key: string, loader: () => Promise<T>): Promise<T> {
+  const hit = configCache.get(key)
+  if (hit && hit.expires > Date.now()) return hit.data as T
+  const data = await loader()
+  // 不缓存空结果：全新库首次读取时配置可能尚未 seed
+  if (data !== null && data !== undefined) {
+    configCache.set(key, { data, expires: Date.now() + CONFIG_CACHE_TTL_MS })
   }
+  return data
+}
+
+export function invalidateConfigCache(key?: string) {
+  if (key) configCache.delete(key)
+  else configCache.clear()
+}
+
+/** Fetch realm config from DB, with fallback to provided default (cached 60s) */
+export async function getRealmFromDB(db: ReturnType<typeof useDB>, realm: Realm) {
+  return withCache(`realm:${realm}`, async () => {
+    const [row] = await db.select().from(configRealms).where(eq(configRealms.key, realm)).limit(1)
+    if (!row) return null
+    return {
+      key: row.key,
+      label: row.label,
+      lingqiCap: parseFloat(row.lingqiCap),
+      lingshiRate: parseFloat(row.lingshiRate),
+      lingqiRate: parseFloat(row.lingqiRate),
+      breakthroughChance: parseFloat(row.breakthroughChance),
+      maxLayer: row.maxLayer,
+      progressRetainRate: row.progressRetainRate == null ? undefined : parseFloat(row.progressRetainRate),
+      pityChanceStep: row.pityChanceStep == null ? undefined : parseFloat(row.pityChanceStep),
+      pityChanceMax: row.pityChanceMax == null ? undefined : parseFloat(row.pityChanceMax),
+      sortOrder: row.sortOrder,
+    }
+  })
 }
 
 /** Get breakthrough base chance for a realm boundary from DB */
@@ -28,6 +53,7 @@ export async function getBreakthroughChanceFromDB(db: ReturnType<typeof useDB>, 
 
 /** Fetch all quality tiers from DB */
 export async function getQualityConfigFromDB(db: ReturnType<typeof useDB>) {
+  return withCache('quality', async () => {
   const rows = await db.select().from(configQuality).orderBy(configQuality.quality)
   return rows.map(r => ({
     quality: r.quality,
@@ -36,6 +62,7 @@ export async function getQualityConfigFromDB(db: ReturnType<typeof useDB>) {
     rollThreshold: parseFloat(r.rollThreshold),
     bonusRate: parseFloat(r.bonusRate),
   }))
+  })
 }
 
 /** Roll equipment quality using DB config */
@@ -54,14 +81,16 @@ export function calcQualityBonusesWithConfig(quality: number, qualityConfig: { q
   return { bonusLingqiRate: rate, bonusLingshiRate: rate }
 }
 
-/** Fetch all clan daily task templates from DB */
+/** Fetch all clan daily task templates from DB (cached 60s) */
 export async function getClanDailyTasksFromDB(db: ReturnType<typeof useDB>) {
-  return await db.select().from(configClanDailyTasks).orderBy(configClanDailyTasks.sortOrder)
+  return withCache('clan-daily-tasks', () =>
+    db.select().from(configClanDailyTasks).orderBy(configClanDailyTasks.sortOrder))
 }
 
-/** Fetch clan level config from DB */
+/** Fetch clan level config from DB (cached 60s) */
 export async function getClanLevelsFromDB(db: ReturnType<typeof useDB>) {
-  return await db.select().from(configClanLevels).orderBy(configClanLevels.level)
+  return withCache('clan-levels', () =>
+    db.select().from(configClanLevels).orderBy(configClanLevels.level))
 }
 
 /** Calculate clan level bonus from DB config */
@@ -72,17 +101,19 @@ export async function getClanLevelBonusFromDB(db: ReturnType<typeof useDB>, leve
   return (level - 1) * 0.02
 }
 
-/** Fetch all adventure events from DB */
+/** Fetch all adventure events from DB (cached 60s) */
 export async function getAdventureEventsFromDB(db: ReturnType<typeof useDB>) {
-  const rows = await db.select().from(configAdventureEvents).orderBy(configAdventureEvents.sortOrder)
-  return rows.map(r => ({
-    type: r.eventType,
-    title: r.title,
-    description: r.description,
-    choices: JSON.parse(r.choicesJson) as { label: string; desc: string }[],
-    rewards: JSON.parse(r.rewardsJson) as { type: string; value: number }[],
-    baseChance: parseFloat(r.baseChance),
-  }))
+  return withCache('adventure-events', async () => {
+    const rows = await db.select().from(configAdventureEvents).orderBy(configAdventureEvents.sortOrder)
+    return rows.map(r => ({
+      type: r.eventType,
+      title: r.title,
+      description: r.description,
+      choices: JSON.parse(r.choicesJson) as { label: string; desc: string }[],
+      rewards: JSON.parse(r.rewardsJson) as { type: string; value: number }[],
+      baseChance: parseFloat(r.baseChance),
+    }))
+  })
 }
 
 /** Roll an adventure event using DB config */

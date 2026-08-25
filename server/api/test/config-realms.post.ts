@@ -21,5 +21,6 @@ export default defineEventHandler(async (event) => {
       .where(eq(configRealms.key, realm.key))
   }
 
+  invalidateConfigCache()
   return { success: true }
 })
