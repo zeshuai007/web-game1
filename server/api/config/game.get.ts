@@ -1,5 +1,30 @@
 import { configRealms, configShopItems, configForgeRecipes, configAlchemyRecipes, configAchievementDefs, configMaterialNames, configAdventureEvents, configClanLevels, configClanDailyTasks, configQuality } from '../../db/schema'
 import { isConfigEmpty } from '../../utils/config'
+import { realmSeedData, EARLY_STAGE_REALM_KEYS } from '../../db/seed'
+
+/** 前期境界（凝气/筑基）调优由代码拥有：把漂移的行强制同步回最新值 */
+async function syncEarlyStageTuning(db: any) {
+  for (const d of realmSeedData.filter(r => EARLY_STAGE_REALM_KEYS.includes(r.key))) {
+    await db.insert(configRealms).values({
+      key: d.key, label: d.label,
+      lingqiCap: String(d.lingqiCap), lingshiRate: String(d.lingshiRate), lingqiRate: String(d.lingqiRate),
+      breakthroughChance: String(d.breakthroughChance), maxLayer: d.maxLayer,
+      progressRetainRate: d.progressRetainRate != null ? String(d.progressRetainRate) : null,
+      pityChanceStep: d.pityChanceStep != null ? String(d.pityChanceStep) : null,
+      pityChanceMax: d.pityChanceMax != null ? String(d.pityChanceMax) : null,
+    }).onConflictDoUpdate({
+      target: configRealms.key,
+      set: {
+        label: d.label,
+        lingqiCap: String(d.lingqiCap), lingshiRate: String(d.lingshiRate), lingqiRate: String(d.lingqiRate),
+        breakthroughChance: String(d.breakthroughChance), maxLayer: d.maxLayer,
+        progressRetainRate: d.progressRetainRate != null ? String(d.progressRetainRate) : null,
+        pityChanceStep: d.pityChanceStep != null ? String(d.pityChanceStep) : null,
+        pityChanceMax: d.pityChanceMax != null ? String(d.pityChanceMax) : null,
+      },
+    })
+  }
+}
 
 export default defineEventHandler(async () => {
   const db = useDB()
@@ -9,6 +34,8 @@ export default defineEventHandler(async () => {
     const { seedConfig } = await import('../../db/seed')
     await seedConfig(db)
   }
+
+  await syncEarlyStageTuning(db)
 
   const [realms, shopItems, forgeRecipes, alchemyRecipes, achievementDefs, materialNames, adventureEvents, clanLevels, clanDailyTasks, qualityTiers] = await Promise.all([
     db.select().from(configRealms).orderBy(configRealms.sortOrder),

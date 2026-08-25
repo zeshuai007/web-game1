@@ -1,8 +1,6 @@
 import { configRealms, configShopItems, configForgeRecipes, configAlchemyRecipes, configAchievementDefs, configMaterialNames, configAdventureEvents, configClanLevels, configClanDailyTasks, configQuality, realmEnum } from './schema'
 
-export async function seedConfig(db: any) {
-  // ─── Realms ───────────────────────────────────────────────────
-  const realmData: Array<{ key: string; label: string; lingqiCap: number; lingqiRate: number; lingshiRate: number; breakthroughChance: number; maxLayer: number; progressRetainRate: number | null; pityChanceStep: number | null; pityChanceMax: number | null }> = [
+export const realmSeedData: Array<{ key: string; label: string; lingqiCap: number; lingqiRate: number; lingshiRate: number; breakthroughChance: number; maxLayer: number; progressRetainRate: number | null; pityChanceStep: number | null; pityChanceMax: number | null }> = [
     { key: 'condensing_qi',      label: '凝气期', lingqiCap: 150,  lingqiRate: 15,  lingshiRate: 15,  breakthroughChance: 0.6,  maxLayer: 9, progressRetainRate: 0.5, pityChanceStep: 0.05, pityChanceMax: 0.2 },
     { key: 'foundation',         label: '筑基期', lingqiCap: 450,  lingqiRate: 45,  lingshiRate: 45,  breakthroughChance: 0.5,  maxLayer: 3, progressRetainRate: 0.5, pityChanceStep: 0.05, pityChanceMax: 0.2 },
     { key: 'core_formation',     label: '结丹期', lingqiCap: 20000,  lingqiRate: 80,  lingshiRate: 80,  breakthroughChance: 0.3,  maxLayer: 3, progressRetainRate: null, pityChanceStep: null, pityChanceMax: null },
@@ -11,6 +9,13 @@ export async function seedConfig(db: any) {
     { key: 'nascent_transformation', label: '婴变期', lingqiCap: 1000000, lingqiRate: 1200, lingshiRate: 1200, breakthroughChance: 0.15, maxLayer: 3, progressRetainRate: null, pityChanceStep: null, pityChanceMax: null },
     { key: 'seeking_heaven',     label: '问鼎期', lingqiCap: 5000000, lingqiRate: 3000, lingshiRate: 3000, breakthroughChance: 0,    maxLayer: 3, progressRetainRate: null, pityChanceStep: null, pityChanceMax: null },
   ]
+
+/** 前期境界（凝气/筑基）调优由代码拥有：config 接口读取时自动把漂移的行同步回最新值 */
+export const EARLY_STAGE_REALM_KEYS = ['condensing_qi', 'foundation']
+
+export async function seedConfig(db: any) {
+  // ─── Realms ───────────────────────────────────────────────────
+  const realmData = realmSeedData
 
   for (const [i, d] of realmData.entries()) {
     await db.insert(configRealms).values({
