@@ -1,5 +1,5 @@
 import { configRealms, configShopItems, configForgeRecipes, configAlchemyRecipes, configAchievementDefs, configMaterialNames, configAdventureEvents, configClanLevels, configClanDailyTasks, configQuality } from '../../db/schema'
-import { isConfigEmpty } from '../../utils/config'
+import { isConfigEmpty, invalidateConfigCache } from '../../utils/config'
 import { realmSeedData, EARLY_STAGE_REALM_KEYS } from '../../db/seed'
 
 /** 前期境界（凝气/筑基）调优由代码拥有：把漂移的行强制同步回最新值 */
@@ -36,6 +36,8 @@ export default defineEventHandler(async () => {
   }
 
   await syncEarlyStageTuning(db)
+  // 前期调优刚被强制同步，立即失效配置缓存，其他端点读到最新值
+  invalidateConfigCache()
 
   const [realms, shopItems, forgeRecipes, alchemyRecipes, achievementDefs, materialNames, adventureEvents, clanLevels, clanDailyTasks, qualityTiers] = await Promise.all([
     db.select().from(configRealms).orderBy(configRealms.sortOrder),

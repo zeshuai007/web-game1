@@ -305,11 +305,9 @@ onMounted(async () => {
     router.push('/')
     return
   }
-  await auth.fetchMe()
-  await fetchSignInStatus()
-  await fetchInventory()
-  await loadGameConfig()
-  await chat.connect()
+  // 互不依赖的初始化并行执行，加快进入修炼页的首屏
+  await Promise.all([auth.fetchMe(), fetchSignInStatus(), fetchInventory(), loadGameConfig()])
+  chat.connect() // 不阻塞渲染：内部自行拉取未读并订阅 Pusher
   gameLog.start()
   adventureTimer = setInterval(checkAdventure, 30000)
   checkAdventure()
