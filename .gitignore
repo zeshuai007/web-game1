@@ -4,3 +4,5 @@ test-results
 *.log
 pgdata
 .vercel/
+.env
+.env.*
