@@ -9,7 +9,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     jwtSecret: process.env.JWT_SECRET || (process.dev ? 'dev-secret-not-for-production' : (() => { throw new Error('JWT_SECRET environment variable is required in production') })()),
-    dbConnectionString: process.env.DB_CONNECTION_STRING || 'postgresql://neondb_owner:npg_EL5QzbD6ZHxv@ep-billowing-meadow-aps6x2xn-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
+    // Never hardcode credentials here — always provide via environment variables.
+    dbConnectionString: process.env.DB_CONNECTION_STRING || '',
     pusherEnabled: process.env.PUSHER_ENABLED === '1',
     pusherAppId: process.env.PUSHER_APP_ID || '',
     pusherKey: process.env.PUSHER_KEY || '',
