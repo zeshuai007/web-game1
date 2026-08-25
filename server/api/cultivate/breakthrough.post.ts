@@ -136,7 +136,8 @@ export default defineEventHandler(async (event) => {
 })
 
 function getBreakthroughRoll(event: any) {
-  const forcedRoll = getHeader(event, 'x-test-breakthrough-roll')
+  // Test-only override — ignored unless test mode is enabled (never in production by default)
+  const forcedRoll = isTestModeEnabled() ? getHeader(event, 'x-test-breakthrough-roll') : undefined
   if (!forcedRoll) return Math.random()
   const parsed = Number(forcedRoll)
   if (Number.isNaN(parsed)) return Math.random()
