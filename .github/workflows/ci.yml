@@ -8,7 +8,6 @@ on:
 
 jobs:
   test:
-    if: false
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -46,6 +45,9 @@ jobs:
         env:
           DB_CONNECTION_STRING: postgresql://postgres@localhost:5432/xianni_game
           JWT_SECRET: ci-test-secret
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
 
       - name: E2E tests
         run: npm run test:e2e
