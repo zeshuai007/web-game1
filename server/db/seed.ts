@@ -1,8 +1,8 @@
 import { configRealms, configShopItems, configForgeRecipes, configAlchemyRecipes, configAchievementDefs, configMaterialNames, configAdventureEvents, configClanLevels, configClanDailyTasks, configQuality, realmEnum } from './schema'
 
 export const realmSeedData: Array<{ key: string; label: string; lingqiCap: number; lingqiRate: number; lingshiRate: number; breakthroughChance: number; maxLayer: number; progressRetainRate: number | null; pityChanceStep: number | null; pityChanceMax: number | null }> = [
-    { key: 'condensing_qi',      label: '凝气期', lingqiCap: 150,  lingqiRate: 15,  lingshiRate: 15,  breakthroughChance: 0.6,  maxLayer: 9, progressRetainRate: 0.5, pityChanceStep: 0.05, pityChanceMax: 0.2 },
-    { key: 'foundation',         label: '筑基期', lingqiCap: 450,  lingqiRate: 45,  lingshiRate: 45,  breakthroughChance: 0.5,  maxLayer: 3, progressRetainRate: 0.5, pityChanceStep: 0.05, pityChanceMax: 0.2 },
+    { key: 'condensing_qi',      label: '凝气期', lingqiCap: 150,  lingqiRate: 90,  lingshiRate: 90,  breakthroughChance: 0.6,  maxLayer: 9, progressRetainRate: 0.5, pityChanceStep: 0.05, pityChanceMax: 0.2 },
+    { key: 'foundation',         label: '筑基期', lingqiCap: 450,  lingqiRate: 90,  lingshiRate: 90,  breakthroughChance: 0.5,  maxLayer: 3, progressRetainRate: 0.5, pityChanceStep: 0.05, pityChanceMax: 0.2 },
     { key: 'core_formation',     label: '结丹期', lingqiCap: 20000,  lingqiRate: 80,  lingshiRate: 80,  breakthroughChance: 0.3,  maxLayer: 3, progressRetainRate: null, pityChanceStep: null, pityChanceMax: null },
     { key: 'nascent_soul',       label: '元婴期', lingqiCap: 80000,  lingqiRate: 200, lingshiRate: 200, breakthroughChance: 0.25, maxLayer: 3, progressRetainRate: null, pityChanceStep: null, pityChanceMax: null },
     { key: 'deity_transformation',  label: '化神期', lingqiCap: 300000, lingqiRate: 500, lingshiRate: 500, breakthroughChance: 0.2,  maxLayer: 3, progressRetainRate: null, pityChanceStep: null, pityChanceMax: null },

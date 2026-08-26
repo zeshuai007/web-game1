@@ -1,6 +1,9 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, and, desc } from 'drizzle-orm'
 import { characters, adventureEvents as adventureTable, type Realm } from '../../db/schema'
 import { getAdventureEventsFromDB, rollAdventureEventWithConfig } from '../../utils/config'
+
+/** 奇遇触发冷却：上次事件创建后 N 分钟内不再 roll，与轮询行为解耦（#70） */
+export const ADVENTURE_COOLDOWN_MS = 10 * 60 * 1000
 
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
@@ -19,6 +22,16 @@ export default defineEventHandler(async (event) => {
 
   if (pending) {
     return { event: { id: pending.id, type: pending.eventType, data: JSON.parse(pending.eventData), state: pending.state } }
+  }
+
+  // ── 触发冷却：上一条奇遇（含已解决）距今不足冷却期则不 roll ──
+  const [latest] = await db.select({ createdAt: adventureTable.createdAt })
+    .from(adventureTable)
+    .where(eq(adventureTable.characterId, char.id))
+    .orderBy(desc(adventureTable.createdAt))
+    .limit(1)
+  if (latest && Date.now() - new Date(latest.createdAt).getTime() < ADVENTURE_COOLDOWN_MS) {
+    return { event: null }
   }
 
   // Try to trigger a random event
