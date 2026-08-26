@@ -105,6 +105,10 @@ export const characters = pgTable('characters', {
   lingqiRate: decimal('lingqi_rate', { precision: 10, scale: 4 }).notNull().default('1'),
   breakthroughFailureCount: integer('breakthrough_failure_count').notNull().default(0),
   offlineStartedAt: timestamp('offline_started_at').defaultNow().notNull(),
+  // ── 修炼丹 buff（单槽：再次服用覆盖）──
+  pillBuffItemId: varchar('pill_buff_item_id', { length: 50 }),
+  pillBuffRate: decimal('pill_buff_rate', { precision: 4, scale: 2 }),
+  pillBuffUntil: timestamp('pill_buff_until'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

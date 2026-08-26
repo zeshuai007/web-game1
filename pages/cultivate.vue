@@ -58,7 +58,7 @@
             <div class="grid grid-cols-2 gap-2 text-xs text-ink-400">
               <div class="bg-ink-800/30 rounded p-2 text-center">
                 <div>灵气速率</div>
-                <div class="text-jade-400 font-bold">{{ c.lingqiRate }}/分钟</div>
+                <div class="text-jade-400 font-bold">{{ c.lingqiRate }}/分钟<span v-if="pillBuffActive" class="ml-0.5 text-gold-400">+{{ Math.round((c.pillBuffRate || 0) * 100) }}%</span></div>
               </div>
               <div class="bg-ink-800/30 rounded p-2 text-center">
                 <div>灵石速率</div>
@@ -85,11 +85,14 @@
             </div>
           </div>
 
-          <!-- Breakthrough Button -->
-          <button v-if="canBreakthrough" @click="showBreakthrough = true"
+          <!-- Breakthrough Button：仅大境界瓶颈需要主动突破；小境界由结算自动晋升（PRD US8） -->
+          <button v-if="isInRealmBreakthrough" @click="showBreakthrough = true"
             class="w-full mt-4 py-3 bg-gradient-to-r from-gold-700 to-gold-600 hover:from-gold-600 hover:to-gold-500 text-white rounded font-bold tracking-wider transition-all duration-300 animate-breath-glow">
             突 破
           </button>
+          <div v-else-if="canBreakthrough" class="w-full mt-4 py-3 text-center text-jade-300 text-sm border border-jade-700/40 rounded bg-jade-950/20">
+            灵气圆满，闭关冲击下一层中…
+          </div>
         </div>
 
         <!-- Sign-in Card -->
@@ -120,9 +123,12 @@
           <h3 class="text-sm text-ink-400 uppercase tracking-wider mb-2">背包</h3>
           <div v-if="inventory.length === 0" class="text-ink-500 text-sm text-center py-2">空空如也</div>
           <div v-else class="space-y-1 max-h-40 overflow-y-auto">
-            <div v-for="item in inventory" :key="item.id" class="flex justify-between text-sm text-ink-200">
-              <span>{{ item.name }}</span>
-              <span class="text-ink-400">×{{ item.quantity }}</span>
+            <div v-for="item in inventory" :key="item.id" class="flex justify-between items-center text-sm text-ink-200 gap-2">
+              <span class="truncate">{{ item.name }} <span class="text-ink-400">×{{ item.quantity }}</span></span>
+              <button v-if="item.itemType === 'pill'" @click="consumePill(item.itemId)" :disabled="!!consuming"
+                class="shrink-0 px-2 py-0.5 bg-jade-700 hover:bg-jade-600 disabled:bg-ink-700 disabled:text-ink-500 text-white rounded text-xs transition-colors">
+                {{ consuming === item.itemId ? '…' : '服用' }}
+              </button>
             </div>
           </div>
         </div>
@@ -420,6 +426,30 @@ async function fetchInventory() {
     const res = await $fetch('/api/inventory', { headers: auth.getHeaders() })
     inventory.value = res.items
   } catch { /* ignore */ }
+}
+
+// ── 修炼丹服用（PRD US13：限时加速灵气获取）──
+const consuming = ref<string | null>(null)
+const pillBuffActive = computed(() => {
+  const until = c.value?.pillBuffUntil
+  return !!until && new Date(until).getTime() > Date.now()
+})
+
+async function consumePill(itemId: string) {
+  consuming.value = itemId
+  try {
+    const res = await $fetch('/api/alchemy/consume', {
+      method: 'POST',
+      headers: auth.getHeaders(),
+      body: { itemId },
+    })
+    setActionFeedback(res.message, 'ok')
+    await Promise.all([auth.fetchMe(), fetchInventory()])
+  } catch (e) {
+    setActionFeedback('服用失败：' + (e.data?.message || e.message || '未知错误'), 'err')
+  } finally {
+    consuming.value = null
+  }
 }
 
 // Breakthrough
