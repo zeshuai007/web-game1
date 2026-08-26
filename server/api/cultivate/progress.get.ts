@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm'
-import { characters } from '../../db/schema'
+import { eq, and, sql } from 'drizzle-orm'
+import { characters, equipment, clanMembers, clans } from '../../db/schema'
 import { type Realm, isMaxLayer } from '../../utils/realm-config'
-import { getRealmFromDB } from '../../utils/config'
+import { getRealmFromDB, getClanLevelBonusFromDB } from '../../utils/config'
 import { isPillBuffActive } from '../../utils/pill-buff'
 
 /**
@@ -9,7 +9,7 @@ import { isPillBuffActive } from '../../utils/pill-buff'
  *
  * - 事务 + SELECT ... FOR UPDATE：并发请求（双开标签页）在此排队，
  *   后到的请求会看到已被推进的 offline_started_at，只结算自己那段窗口。
- * - 修炼丹 buff 分段计费：离线窗口中处于 buff 有效期内的部分按加成速率结算。
+ * - 加成体系：基础速率 + 装备加成（加法区）→ × 丹药 buff（乘区，分段计费）→ × 宗门等级加成（乘区）。
  * - 小境界自动晋升（PRD US8「无需操作」）：灵气攒满且非大境界瓶颈时逐层推进，
  *   离线期间同样生效；大境界突破仍由玩家主动触发。
  */
@@ -30,6 +30,23 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, message: '境界配置不存在' })
     }
 
+    // ── 装备加成（已穿戴合计，加法区）──
+    const [equipAgg] = await tx.select({
+      qi: sql<string>`coalesce(sum(${equipment.bonusLingqiRate}), 0)`,
+      shi: sql<string>`coalesce(sum(${equipment.bonusLingshiRate}), 0)`,
+    }).from(equipment)
+      .where(and(eq(equipment.characterId, char.id), eq(equipment.equipped, 1)))
+    const equipQi = parseFloat(equipAgg?.qi || '0')
+    const equipShi = parseFloat(equipAgg?.shi || '0')
+
+    // ── 宗门等级加成（乘区）──
+    const [memberRow] = await tx.select({ level: clans.level })
+      .from(clanMembers)
+      .innerJoin(clans, eq(clanMembers.clanId, clans.id))
+      .where(eq(clanMembers.characterId, char.id))
+      .limit(1)
+    const clanBonus = memberRow ? await getClanLevelBonusFromDB(tx, memberRow.level) : 0
+
     const now = new Date()
     const lastOnline = new Date(char.offlineStartedAt)
 
@@ -46,10 +63,12 @@ export default defineEventHandler(async (event) => {
       buffedMinutes = Math.max(0, Math.min(buffEndMs / (1000 * 60), effectiveMinutes))
     }
     const plainMinutes = effectiveMinutes - buffedMinutes
-    const bonusRate = buffedMinutes > 0 ? parseFloat(char.pillBuffRate || '0') : 0
+    const pillBonus = buffedMinutes > 0 ? parseFloat(char.pillBuffRate || '0') : 0
 
-    const lingqiGain = cfg.lingqiRate * plainMinutes + cfg.lingqiRate * (1 + bonusRate) * buffedMinutes
-    const lingshiGain = cfg.lingshiRate * effectiveMinutes // 丹药只加速灵气，不影响灵石
+    const baseQi = cfg.lingqiRate + equipQi
+    const baseShi = cfg.lingshiRate + equipShi
+    const lingqiGain = (baseQi * plainMinutes + baseQi * (1 + pillBonus) * buffedMinutes) * (1 + clanBonus)
+    const lingshiGain = baseShi * effectiveMinutes * (1 + clanBonus)
 
     // Update character with offline earnings (lingqi capped at realm cap)
     const currentLingqi = parseFloat(char.lingqi)
@@ -97,6 +116,9 @@ export default defineEventHandler(async (event) => {
         lingqi: lingqiGain,
         lingshi: lingshiGain,
         minutes: effectiveMinutes,
+        equipBonusQi: equipQi,
+        clanBonus,
+        pillBonus,
       },
       autoBreakthroughs,
       realmConfig: cfg,

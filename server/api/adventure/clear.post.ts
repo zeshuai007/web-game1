@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { characters, adventureEvents as adventureTable } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {
@@ -6,10 +6,10 @@ export default defineEventHandler(async (event) => {
   const db = useDB()
   const char = await useCharacter(event)
 
-  // Mark all pending events as expired
-  await db.update(adventureTable)
-    .set({ state: 'expired' })
-    .where(and(eq(adventureTable.characterId, char.id), eq(adventureTable.state, 'pending')))
+  // 彻底清除该角色的奇遇记录（含历史）：
+  // 既结束未决事件，也重置触发冷却（#70）
+  await db.delete(adventureTable)
+    .where(eq(adventureTable.characterId, char.id))
 
   return { success: true }
 })
