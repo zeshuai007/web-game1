@@ -1,13 +1,22 @@
 import { eq, and } from 'drizzle-orm'
 import { characters, inventory, configShopItems } from '../../db/schema'
 
+const MAX_QUANTITY = 999
+
+/**
+ * 商店购买（事务化）。
+ *
+ * 扣款与入包在同一事务中原子提交；行锁串行化防止并发扣款竞态。
+ */
 export default defineEventHandler(async (event) => {
   const userId = event.context.userId
   const body = await readBody(event)
   const { itemId, quantity = 1 } = body || {}
 
   if (!itemId) throw createError({ statusCode: 400, message: '缺少商品ID' })
-  if (quantity < 1) throw createError({ statusCode: 400, message: '数量无效' })
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) {
+    throw createError({ statusCode: 400, message: `数量无效（1-${MAX_QUANTITY}）` })
+  }
 
   const db = useDB()
 
@@ -16,19 +25,30 @@ export default defineEventHandler(async (event) => {
 
   const price = shopItem.price * quantity
 
-  const char = await useCharacter(event)
-  if (parseFloat(char.lingshi) < price) throw createError({ statusCode: 400, message: '灵石不足' })
+  return db.transaction(async (tx) => {
+    const [char] = await tx.select().from(characters)
+      .where(eq(characters.userId, userId))
+      .for('update')
+    if (!char) throw createError({ statusCode: 404, message: '角色不存在' })
+    if (parseFloat(char.lingshi) < price) throw createError({ statusCode: 400, message: '灵石不足' })
 
-  await db.update(characters).set({ lingshi: String(parseFloat(char.lingshi) - price) }).where(eq(characters.id, char.id))
+    const now = new Date()
+    await tx.update(characters)
+      .set({ lingshi: String(parseFloat(char.lingshi) - price), updatedAt: now })
+      .where(eq(characters.id, char.id))
 
-  const [inv] = await db.select().from(inventory)
-    .where(and(eq(inventory.characterId, char.id), eq(inventory.itemId, itemId)))
+    const [inv] = await tx.select().from(inventory)
+      .where(and(eq(inventory.characterId, char.id), eq(inventory.itemId, itemId)))
+      .limit(1)
 
-  if (inv) {
-    await db.update(inventory).set({ quantity: inv.quantity + quantity }).where(eq(inventory.id, inv.id))
-  } else {
-    await db.insert(inventory).values({ characterId: char.id, itemType: 'material', itemId, quantity })
-  }
+    if (inv) {
+      await tx.update(inventory)
+        .set({ quantity: inv.quantity + quantity, updatedAt: now })
+        .where(eq(inventory.id, inv.id))
+    } else {
+      await tx.insert(inventory).values({ characterId: char.id, itemType: shopItem.itemType || 'material', itemId, quantity })
+    }
 
-  return { success: true, message: `购买成功，获得 ${shopItem.name} ×${quantity}` }
+    return { success: true, message: `购买成功，获得 ${shopItem.name} ×${quantity}` }
+  })
 })
