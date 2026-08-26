@@ -43,6 +43,16 @@
           </table>
         </div>
       </div>
+
+      <!-- 我的排名（PRD US16）：百名外玩家也能看到自己的进度 -->
+      <div v-if="me" class="mt-4 bg-jade-950/40 border border-jade-700/40 rounded-lg px-4 py-3 flex items-center justify-between text-sm">
+        <span class="text-jade-300 font-bold">我的排名</span>
+        <span class="text-ink-200">
+          <b class="text-gold-400">#{{ me.rank }}</b>
+          <span class="text-ink-400 ml-3">{{ me.realm }} · 第{{ me.realmLayer }}{{ me.realm === '凝气期' ? '层' : (['初期','中期','后期'][me.realmLayer - 1] || '') }}</span>
+          <span class="ml-3">修为 {{ formatNumber(me.lingqi) }}</span>
+        </span>
+      </div>
     </div>
   </div>
 </template>

@@ -4,6 +4,22 @@
     <div class="fixed inset-0 bg-ink-950/60 transition-opacity duration-1000 -z-10"></div>
     <GameHeader />
 
+    <!-- 离线收益呈现（PRD US7）-->
+    <div v-if="offlineReport" class="max-w-6xl w-full mx-auto px-4 pt-4">
+      <div class="bg-jade-950/40 border border-jade-700/40 rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
+        <p class="text-jade-200 text-sm">
+          出关收获：闭关 <b>{{ Math.floor(offlineReport.minutes / 60) }}</b> 小时
+          <b>{{ Math.round(offlineReport.minutes % 60) }}</b> 分，获得灵气
+          <b class="text-gold-300">{{ formatNumber(offlineReport.lingqi) }}</b>、灵石
+          <b class="text-gold-300">{{ formatNumber(offlineReport.lingshi) }}</b>
+        </p>
+        <button @click="offlineReport = null"
+          class="shrink-0 px-3 py-1.5 bg-jade-700 hover:bg-jade-600 text-white rounded text-xs transition-colors">
+          收下
+        </button>
+      </div>
+    </div>
+
     <div v-if="!c?.nickname" class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div class="lg:col-span-1 space-y-4">
         <div class="bg-ink-900/70 border border-ink-700 rounded-lg p-6 space-y-4">
@@ -208,6 +224,7 @@ import { useGameLoop } from '~/composables/useGameLoop'
 
 const router = useRouter()
 const gameLog = useGameLoop()
+const offlineReport = gameLog.offlineReport
 const chat = useChat()
 const c = auth.character // top-level ref for template auto-unwrap
 const actionFeedback = ref('')
@@ -313,6 +330,11 @@ onMounted(async () => {
   }
   // 互不依赖的初始化并行执行，加快进入修炼页的首屏
   await Promise.all([auth.fetchMe(), fetchSignInStatus(), fetchInventory(), loadGameConfig()])
+  // fetchMe 失败会清除登录态（token 过期/被撤销）——回登录页而不是留在死页面
+  if (!auth.isLoggedIn()) {
+    router.push('/')
+    return
+  }
   chat.connect() // 不阻塞渲染：内部自行拉取未读并订阅 Pusher
   gameLog.start()
   adventureTimer = setInterval(checkAdventure, 30000)

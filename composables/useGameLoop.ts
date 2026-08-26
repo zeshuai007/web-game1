@@ -15,6 +15,8 @@ export function useGameLoop() {
   const intervalId = ref<ReturnType<typeof setInterval> | null>(null)
   const tickIntervalId = ref<ReturnType<typeof setInterval> | null>(null)
   const lastUpdate = ref<number>(Date.now())
+  /** 首次校准时捕获的离线收益（≥5 分钟才呈现，避免常驻在线误报） */
+  const offlineReport = ref<{ lingqi: number; lingshi: number; minutes: number } | null>(null)
 
   /** 本地插值：按速率推进灵气/灵石显示值 */
   function tick() {
@@ -42,6 +44,11 @@ export function useGameLoop() {
       })
       auth.character.value = res.character
       lastUpdate.value = Date.now()
+      // 离线收益呈现（PRD US7）：仅首次校准且离线时长可观时弹出
+      const oe = res.offlineEarnings
+      if (oe && oe.minutes >= 5 && !offlineReport.value) {
+        offlineReport.value = { lingqi: oe.lingqi, lingshi: oe.lingshi, minutes: oe.minutes }
+      }
     } catch {
       // silent — 本地插值继续，下个周期重试
     }
@@ -66,5 +73,5 @@ export function useGameLoop() {
 
   onUnmounted(() => stop())
 
-  return { sync, start, stop, lastUpdate }
+  return { sync, start, stop, lastUpdate, offlineReport }
 }
