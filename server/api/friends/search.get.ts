@@ -1,4 +1,4 @@
-import { eq, ilike, sql } from 'drizzle-orm'
+import { eq, and, ilike, sql, inArray, or } from 'drizzle-orm'
 import { characters, friendRequests, realmLabels, type Realm } from '../../db/schema'
 
 export default defineEventHandler(async (event) => {
@@ -26,10 +26,10 @@ export default defineEventHandler(async (event) => {
   const charIds = results.map(r => r.id)
   const existing = charIds.length
     ? await db.select().from(friendRequests)
-      .where(sql`(
-        (${friendRequests.fromCharacterId} = ${me.id} AND ${friendRequests.toCharacterId} IN (${charIds.join(',')}))
-        OR (${friendRequests.toCharacterId} = ${me.id} AND ${friendRequests.fromCharacterId} IN (${charIds.join(',')}))
-      )`)
+      .where(or(
+        and(eq(friendRequests.fromCharacterId, me.id), inArray(friendRequests.toCharacterId, charIds)),
+        and(eq(friendRequests.toCharacterId, me.id), inArray(friendRequests.fromCharacterId, charIds)),
+      ))
     : []
 
   const existingIds = new Set(existing.flatMap(r => [r.fromCharacterId, r.toCharacterId]))
