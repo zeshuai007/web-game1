@@ -47,6 +47,7 @@ const messageType = ref('success')
 
 onMounted(async () => {
   if (!auth.isLoggedIn()) { router.push('/'); return }
+  await auth.fetchMe() // 刷新最新灵石余额（离开修炼页期间挂机产出仍在累积）
   const res = await $fetch('/api/shop/items', { headers: auth.getHeaders() })
   items.value = res.items
 })
