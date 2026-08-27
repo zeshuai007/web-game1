@@ -14,17 +14,17 @@
         <form @submit.prevent="handleRegister" class="space-y-4">
           <div>
             <label class="block text-sm text-ink-300 mb-1">道号（昵称）</label>
-            <input v-model="nickname" type="text" placeholder="给自己取个道号" maxlength="20"
+            <input v-model="nickname" type="text" placeholder="给自己取个道号" maxlength="20" autocomplete="nickname"
               class="w-full px-4 py-2.5 bg-ink-950 border border-ink-600 rounded focus:border-jade-500 focus:outline-none text-ink-100 placeholder-ink-500 transition-colors">
           </div>
           <div>
             <label class="block text-sm text-ink-300 mb-1">邮箱 *</label>
-            <input v-model="email" type="email" placeholder="请输入邮箱" required
+            <input v-model="email" type="email" placeholder="请输入邮箱" required autocomplete="email"
               class="w-full px-4 py-2.5 bg-ink-950 border border-ink-600 rounded focus:border-jade-500 focus:outline-none text-ink-100 placeholder-ink-500 transition-colors">
           </div>
           <div>
             <label class="block text-sm text-ink-300 mb-1">密码 *</label>
-            <input v-model="password" type="password" placeholder="至少6位" required minlength="6"
+            <input v-model="password" type="password" placeholder="至少6位" required minlength="6" autocomplete="new-password"
               class="w-full px-4 py-2.5 bg-ink-950 border border-ink-600 rounded focus:border-jade-500 focus:outline-none text-ink-100 placeholder-ink-500 transition-colors">
           </div>
 
@@ -68,7 +68,7 @@ async function handleRegister() {
     await auth.register(email.value, password.value, nickname.value || undefined)
     router.push('/cultivate')
   } catch (e) {
-    error.value = e.data?.message || e.message || '注册失败'
+    error.value = e?.data?.message || '服务暂时不可用，请稍后重试'
   } finally {
     loading.value = false
   }
